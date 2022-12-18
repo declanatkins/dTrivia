@@ -12,11 +12,3 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     games_played = Column(Integer, default=0)
     games_won = Column(Integer, default=0)
-
-
-class Sessions(Base):
-    __tablename__ = "sessions"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer)
-    session_id = Column(String)
-    is_active = Column(Boolean, default=True)
