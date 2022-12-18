@@ -11,3 +11,11 @@ DB_URL = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}" \
 engine = create_async_engine(DB_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 Base = declarative_base()
+
+
+async def get_db():
+    db = await SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
