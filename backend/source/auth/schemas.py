@@ -26,9 +26,6 @@ class User(UserBase):
     games_won: int
     is_active: bool
 
-    class Config:
-        orm_mode = True
-
 
 class UserWithSession(User):
     session_id: str

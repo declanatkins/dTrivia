@@ -1,17 +1,22 @@
 from fastapi import APIRouter, Header, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from errors import Error, UserNotLoggedIn
+from auth.errors import UserNotLoggedIn
 from auth import schemas, crud, models
 from auth.session import validate_session
 from db import engine, get_db
 
-models.Base.metadata.create_all(bind=engine)
 
 router = APIRouter(
     prefix="/users",
     tags=["Users"],
     responses={404: {"description": "Not found"}},
 )
+
+
+@router.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(models.Base.metadata.create_all)
 
 
 @router.post("/", response_model=schemas.User)

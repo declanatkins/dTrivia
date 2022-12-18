@@ -1,20 +1,44 @@
 import hashlib
 import os
 from sqlalchemy.ext.asyncio import AsyncSession
-import errors
-from auth import models, schemas
+from auth import models, schemas, errors
+from auth.session import create_session
 
 
 async def get_user(db: AsyncSession, user_id: int):
-    return await db.query(models.User).filter(models.User.id == user_id).first()
+    result =  await db.query(models.User).filter(models.User.id == user_id).first()
+    if result is None:
+        raise errors.UserNotFound(user_id)
+    return schemas.User(
+        id=result.id,
+        username=result.username,
+        email=result.email,
+        is_active=result.is_active
+    )
 
 
 async def get_user_by_username(db: AsyncSession, username: str):
-    return await db.query(models.User).filter(models.User.username == username).first()
+    result = await db.query(models.User).filter(models.User.username == username).first()
+    if result is None:
+        raise errors.UserNotFound(username)
+    return schemas.User(
+        id=result.id,
+        username=result.username,
+        email=result.email,
+        is_active=result.is_active
+    )
 
 
 async def get_user_by_email(db: AsyncSession, email: str):
-    return await db.query(models.User).filter(models.User.email == email).first()
+    result =  await db.query(models.User).filter(models.User.email == email).first()
+    if result is None:
+        raise errors.UserNotFound(email)
+    return schemas.User(
+        id=result.id,
+        username=result.username,
+        email=result.email,
+        is_active=result.is_active
+    )
 
 
 async def create_user(db: AsyncSession, user: schemas.UserCreate):
@@ -34,7 +58,14 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
     await db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
-    return db_user
+    return schemas.User(
+        id=db_user.id,
+        username=db_user.username,
+        email=db_user.email,
+        games_played=db_user.games_played,
+        games_won=db_user.games_won,
+        is_active=db_user.is_active
+    )
 
 
 async def login_user_by_username(db: AsyncSession, username: str, password: str):
@@ -48,8 +79,19 @@ async def login_user_by_username(db: AsyncSession, username: str, password: str)
         100000
     )
     if str(hashed_password) == user.hashed_password:
-        return user
-    return errors.IncorrectPassword
+        session_id = create_session(user.id)
+        user.is_active = True
+        await db.commit()
+        return schemas.UserWithSession(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            games_played=user.games_played,
+            games_won=user.games_won,
+            is_active=user.is_active,
+            session_id=session_id
+        )
+    raise errors.IncorrectPassword()
 
 
 async def login_user_by_email(db: AsyncSession, email: str, password: str):
@@ -63,5 +105,16 @@ async def login_user_by_email(db: AsyncSession, email: str, password: str):
         100000
     )
     if str(hashed_password) == user.hashed_password:
-        return user
+        session_id = create_session(user.id)
+        user.is_active = True
+        await db.commit()
+        return schemas.UserWithSession(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            games_played=user.games_played,
+            games_won=user.games_won,
+            is_active=user.is_active,
+            session_id=session_id
+        )
     raise errors.IncorrectPassword()
