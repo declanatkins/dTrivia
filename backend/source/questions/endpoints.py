@@ -1,7 +1,7 @@
 from typing import List
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Response, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from questions import schemas, crud, models
+from questions import schemas, crud, models, errors
 from db import engine, get_db
 
 
@@ -16,6 +16,20 @@ questions_router = APIRouter(
     tags=["Questions"],
     responses={404: {"description": "Not found"}},
 )
+
+
+def bulk_load_questions(list_of_questions: list[schemas.Question], db: AsyncSession):
+    for question in list_of_questions:
+        try:
+            crud.create_question(db, question)
+        except errors.CategoryDoesNotExist:
+            crud.create_category(db, schemas.Category(name=question.category, description=""))
+            crud.create_question(db, question)
+
+
+def bulk_load_categories(list_of_categories: list[schemas.Category], db: AsyncSession):
+    for category in list_of_categories:
+        crud.create_category(db, category)
 
 
 @questions_router.on_event("startup")
@@ -59,6 +73,16 @@ async def get_random_question_by_category(
     return await crud.get_random_question_by_category(db, category_name, exclude_ids)
 
 
+@categories_router.post("/bulk")
+async def bulk_load_categories(
+        categories: List[schemas.Category],
+        background_tasks: BackgroundTasks,
+        db: AsyncSession = Depends(get_db)
+):
+    background_tasks.add_task(bulk_load_categories, categories, db)
+    return Response(status_code=200, content='{"detail": "Bulk load started"}')
+
+
 @questions_router.get("/{question_id}", response_model=schemas.QuestionWithId)
 async def get_question(question_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.get_question(db, question_id)
@@ -86,6 +110,16 @@ async def get_random_question(
         exclude_ids: List[int] = Query(list())
 ):
     return await crud.get_random_question(db, exclude_ids)
+
+
+@questions_router.post("/bulk")
+async def bulk_create_questions(
+        questions: List[schemas.Question],
+        background_tasks: BackgroundTasks,
+        db: AsyncSession = Depends(get_db),
+):
+    background_tasks.add_task(bulk_load_questions, questions, db)
+    return Response(status_code=200, content='{"detail": "Bulk load started"}')
 
 
 questions_router.include_router(categories_router)
