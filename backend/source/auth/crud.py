@@ -40,7 +40,7 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
 async def login_user_by_username(db: AsyncSession, username: str, password: str):
     user = await get_user_by_username(db, username)
     if not user:
-        return errors.UserNotFound
+        raise errors.UserNotFound(username)
     hashed_password = hashlib.pbkdf2_hmac(
         'sha256',
         password.encode('utf-8'),
@@ -55,7 +55,7 @@ async def login_user_by_username(db: AsyncSession, username: str, password: str)
 async def login_user_by_email(db: AsyncSession, email: str, password: str):
     user = await get_user_by_email(db, email)
     if not user:
-        return errors.UserNotFound
+        raise errors.UserNotFound(email)
     hashed_password = hashlib.pbkdf2_hmac(
         'sha256',
         password.encode('utf-8'),
@@ -64,4 +64,4 @@ async def login_user_by_email(db: AsyncSession, email: str, password: str):
     )
     if str(hashed_password) == user.hashed_password:
         return user
-    return errors.IncorrectPassword
+    raise errors.IncorrectPassword()

@@ -1,25 +1,48 @@
-from pydantic import BaseModel
+from fastapi import HTTPException, status
 
-
-class Error(BaseModel):
-    detail: str
-
-
-class UserAlreadyExists(Error):
+class UserAlreadyExists(HTTPException):
     def __init__(self, username: str):
-        super().__init__(detail=f"User with username {username} already exists")
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"User with username {username} already exists"
+        )
 
 
-class UserDoesNotExist(Error):
+class UserDoesNotExist(HTTPException):
     def __init__(self, username: str):
-        super().__init__(detail=f"User with username {username} does not exist")
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with username {username} does not exist"
+        )
 
 
-class IncorrectPassword(Error):
+class IncorrectPassword(HTTPException):
     def __init__(self, username: str):
-        super().__init__(detail=f"Incorrect password for user {username}")
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Incorrect password for user {username}"
+        )
 
 
-class UserNotLoggedIn(Error):
+class UserNotLoggedIn(HTTPException):
     def __init__(self):
-        super().__init__(detail="User is not logged in")
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is not logged in"
+        )
+
+
+class CategoryAlreadyExists(HTTPException):
+    def __init__(self, name: str):
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Category with name {name} already exists"
+        )
+
+
+class CategoryDoesNotExist(HTTPException):
+    def __init__(self, name: str):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Category with name {name} does not exist"
+        )
