@@ -1,7 +1,7 @@
 import os
 import aioredis
 from fastapi import Header
-from auth.errors import UserNotLoggedIn
+from users.errors import UserNotLoggedIn
 from settings import get_settings
 
 

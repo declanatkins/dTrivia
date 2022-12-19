@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, Query, Response, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from auth.session import validate_session
+from users.session import validate_session
 from questions import schemas, crud, models, errors
 from db import engine, get_db
 

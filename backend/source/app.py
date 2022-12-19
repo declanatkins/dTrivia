@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from auth.endpoints import router as user_router
+from users.endpoints import router as user_router
 from questions.endpoints import questions_router
 
 

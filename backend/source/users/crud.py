@@ -1,8 +1,8 @@
 import hashlib
 import os
 from sqlalchemy.ext.asyncio import AsyncSession
-from auth import models, schemas, errors
-from auth.session import create_session
+from users import models, schemas, errors
+from users.session import create_session
 
 
 async def get_user(db: AsyncSession, user_id: int):

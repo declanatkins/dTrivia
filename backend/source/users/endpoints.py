@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Header, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from auth.errors import UserNotLoggedIn
-from auth import schemas, crud, models
-from auth.session import validate_session
+from users.errors import UserNotLoggedIn
+from users import schemas, crud, models
+from users.session import validate_session
 from db import engine, get_db
 
 
