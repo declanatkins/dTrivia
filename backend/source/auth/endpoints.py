@@ -36,12 +36,9 @@ async def login_user(
     return user
 
 
-@router.get("/{user_name}", response_model=schemas.User)
+@router.get("/{user_name}", response_model=schemas.User, dependencies=[Depends(validate_session)])
 async def get_user(
         user_name: str,
-        session_id: str = Header(),
         db: AsyncSession = Depends(get_db)
 ):
-    if not validate_session(session_id):
-        raise UserNotLoggedIn()
     return await crud.get_user_by_username(db, user_name)

@@ -1,5 +1,7 @@
 import os
 import aioredis
+from fastapi import Header
+from auth.errors import UserNotLoggedIn
 from settings import get_settings
 
 
@@ -53,10 +55,11 @@ async def delete_user_sessions(user_id: str) -> None:
     await redis.delete(user_id)
 
 
-async def validate_session(session_id: str) -> bool:
+async def validate_session(session_id: str = Header()):
     redis = await aioredis.create_redis_pool(
         f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
         password=settings.REDIS_PASSWORD,
         db=settings.REDIS_DB,
     )
-    return await redis.exists(session_id)
+    if not await redis.exists(session_id):
+        raise UserNotLoggedIn()
