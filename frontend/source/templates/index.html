@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block page_title %}{% endblock %}
+{% block body %}
+    {{ super() }}
+    {% if session.get('current_user') %}
+        <div class="h-100 row align-items-center">
+            <div class="container">
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
