@@ -4,7 +4,7 @@ import os
 DB_HOST  = "localhost"
 DB_PORT  = "5432"
 DB_NAME  = "dtrivia-dev"
-DB_USER  = os.getenv("DB_USER")
+DB_USER  = os.getenv("DB_USER", "postgres")
 DB_PASSWORD  = os.getenv("DB_PASSWORD")
 
 
@@ -16,5 +16,5 @@ API_PORT  = "8000"
 # Redis settings
 REDIS_HOST  = "localhost"
 REDIS_PORT  = "6379"
-REDIS_PASSWORD  = os.getenv("REDIS_PASSWORD")
+REDIS_PASSWORD  = os.getenv("REDIS_PASSWORD", "")
 REDIS_DB  = "0"
