@@ -11,3 +11,7 @@ REDIS_HOST  = "localhost"
 REDIS_PORT  = "6379"
 REDIS_PASSWORD  = os.getenv("REDIS_PASSWORD", "")
 REDIS_DB  = "0"
+
+
+# Backend settings
+BACKEND_URL = "http://localhost:8000"
