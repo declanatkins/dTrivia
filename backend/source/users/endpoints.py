@@ -2,7 +2,7 @@ from fastapi import APIRouter, Header, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from users.errors import UserNotLoggedIn
 from users import schemas, crud, models
-from users.session import validate_session
+from users.session import validate_session, delete_session
 from db import engine, get_db
 
 
@@ -34,6 +34,11 @@ async def login_user(
     else:
         user = await crud.login_user(db, user.email, user.password)
     return user
+
+
+@router.post("/logout", dependencies=[Depends(validate_session)])
+async def logout_user(session_id: str = Header(alias="session-id")):
+    delete_session(session_id)
 
 
 @router.get("/{user_name}", response_model=schemas.User, dependencies=[Depends(validate_session)])
