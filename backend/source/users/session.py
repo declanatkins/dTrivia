@@ -24,7 +24,7 @@ async def create_session(user_id: str) -> str:
     return session_id
 
 
-async def get_user_id(session_id: str) -> str:
+async def get_user_id(session_id: str = Header()) -> str:
     user_id = await redis.get(session_id)
     if user_id:
         await redis.expire(session_id, 3600)
