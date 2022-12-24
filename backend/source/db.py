@@ -14,8 +14,8 @@ Base = declarative_base()
 
 
 async def get_db():
-    db = await SessionLocal()
+    db = SessionLocal()
     try:
         yield db
     finally:
-        db.close()
+        await db.close()

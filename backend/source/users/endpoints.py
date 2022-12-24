@@ -30,7 +30,7 @@ async def login_user(
         db: AsyncSession = Depends(get_db)
 ):
     if isinstance(user, schemas.UserLoginByUsername):
-        user = await crud.login_user(db, user.username, user.password)
+        user = await crud.login_user(db, user.user_name, user.password)
     else:
         user = await crud.login_user(db, user.email, user.password)
     return user
@@ -46,4 +46,4 @@ async def get_user(
         user_name: str,
         db: AsyncSession = Depends(get_db)
 ):
-    return await crud.get_user_by_username(db, user_name)
+    return await crud.get_user_by_user_name(db, user_name)

@@ -11,19 +11,19 @@ async def get_user(db: AsyncSession, user_id: int):
         raise errors.UserNotFound(user_id)
     return schemas.User(
         id=result.id,
-        username=result.username,
+        user_name=result.user_name,
         email=result.email,
         is_active=result.is_active
     )
 
 
-async def get_user_by_username(db: AsyncSession, username: str):
-    result = await db.query(models.User).filter(models.User.username == username).first()
+async def get_user_by_user_name(db: AsyncSession, user_name: str):
+    result = await db.query(models.User).filter(models.User.user_name == user_name).first()
     if result is None:
-        raise errors.UserNotFound(username)
+        raise errors.UserNotFound(user_name)
     return schemas.User(
         id=result.id,
-        username=result.username,
+        user_name=result.user_name,
         email=result.email,
         is_active=result.is_active
     )
@@ -35,7 +35,7 @@ async def get_user_by_email(db: AsyncSession, email: str):
         raise errors.UserNotFound(email)
     return schemas.User(
         id=result.id,
-        username=result.username,
+        user_name=result.user_name,
         email=result.email,
         is_active=result.is_active
     )
@@ -50,7 +50,7 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
         100000
     )
     db_user = models.User(
-        username=user.username,
+        user_name=user.user_name,
         email=user.email,
         hashed_password=str(hashed_password),
         salt=salt
@@ -60,7 +60,7 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
     await db.refresh(db_user)
     return schemas.User(
         id=db_user.id,
-        username=db_user.username,
+        user_name=db_user.user_name,
         email=db_user.email,
         games_played=db_user.games_played,
         games_won=db_user.games_won,
@@ -68,10 +68,10 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
     )
 
 
-async def login_user_by_username(db: AsyncSession, username: str, password: str):
-    user = await get_user_by_username(db, username)
+async def login_user_by_user_name(db: AsyncSession, user_name: str, password: str):
+    user = await get_user_by_user_name(db, user_name)
     if not user:
-        raise errors.UserNotFound(username)
+        raise errors.UserNotFound(user_name)
     hashed_password = hashlib.pbkdf2_hmac(
         'sha256',
         password.encode('utf-8'),
@@ -84,7 +84,7 @@ async def login_user_by_username(db: AsyncSession, username: str, password: str)
         await db.commit()
         return schemas.UserWithSession(
             id=user.id,
-            username=user.username,
+            user_name=user.user_name,
             email=user.email,
             games_played=user.games_played,
             games_won=user.games_won,
@@ -110,7 +110,7 @@ async def login_user_by_email(db: AsyncSession, email: str, password: str):
         await db.commit()
         return schemas.UserWithSession(
             id=user.id,
-            username=user.username,
+            user_name=user.user_name,
             email=user.email,
             games_played=user.games_played,
             games_won=user.games_won,
