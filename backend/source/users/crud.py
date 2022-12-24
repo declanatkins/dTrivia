@@ -62,10 +62,10 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
         await db.commit()
         await db.refresh(db_user)
     except IntegrityError as e:
-        if user.user_name in str(e):
-            raise errors.UserAlreadyExists(user.user_name)
-        else:
+        if 'email' in str(e):
             raise errors.UserAlreadyExists(user.email)
+        else:
+            raise errors.UserAlreadyExists(user.user_name)
     return schemas.User(
         id=db_user.id,
         user_name=db_user.user_name,
