@@ -1,5 +1,6 @@
 import hashlib
 import os
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from users import models, schemas, errors
 from users.session import create_session
@@ -56,9 +57,15 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
         salt=salt
     )
 
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
+    try:
+        db.add(db_user)
+        await db.commit()
+        await db.refresh(db_user)
+    except IntegrityError as e:
+        if user.user_name in str(e):
+            raise errors.UserAlreadyExists(user.user_name)
+        else:
+            raise errors.UserAlreadyExists(user.email)
     return schemas.User(
         id=db_user.id,
         user_name=db_user.user_name,
