@@ -34,19 +34,6 @@ async def get_user_by_user_name(db: AsyncSession, user_name: str):
     )
 
 
-async def get_user_by_email(db: AsyncSession, email: str):
-    result =  await db.execute(models.User.__table__.select().where(models.User.email == email))
-    result = result.first()
-    if result is None:
-        raise errors.UserDoesNotExist(email)
-    return schemas.User(
-        id=result.id,
-        user_name=result.user_name,
-        email=result.email,
-        is_active=result.is_active
-    )
-
-
 async def create_user(db: AsyncSession, user: schemas.UserCreate):
     salt = os.urandom(32)
     hashed_password = hashlib.pbkdf2_hmac(
@@ -82,52 +69,54 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
 
 
 async def login_user_by_user_name(db: AsyncSession, user_name: str, password: str):
-    user = await get_user_by_user_name(db, user_name)
-    if not user:
+    result = await db.execute(models.User.__table__.select().where(models.User.user_name == user_name))
+    result = result.first()
+    if not result:
         raise errors.UserNotFound(user_name)
     hashed_password = hashlib.pbkdf2_hmac(
         'sha256',
         password.encode('utf-8'),
-        user.salt,
+        result.salt,
         100000
     )
-    if hashed_password == user.hashed_password:
-        session_id = create_session(user.id)
-        user.is_active = True
+    if hashed_password == result.hashed_password:
+        session_id = await create_session(result.id)
+        models.User.__table__.update().where(models.User.id == result.id).values(is_active=True)
         await db.commit()
         return schemas.UserWithSession(
-            id=user.id,
-            user_name=user.user_name,
-            email=user.email,
-            games_played=user.games_played,
-            games_won=user.games_won,
-            is_active=user.is_active,
+            id=result.id,
+            user_name=result.user_name,
+            email=result.email,
+            games_played=result.games_played,
+            games_won=result.games_won,
+            is_active=True,
             session_id=session_id
         )
     raise errors.IncorrectPassword()
 
 
 async def login_user_by_email(db: AsyncSession, email: str, password: str):
-    user = await get_user_by_email(db, email)
-    if not user:
+    result =  await db.execute(models.User.__table__.select().where(models.User.email == email))
+    result = result.first()
+    if not result:
         raise errors.UserNotFound(email)
     hashed_password = hashlib.pbkdf2_hmac(
         'sha256',
         password.encode('utf-8'),
-        user.salt,
+        result.salt,
         100000
     )
-    if hashed_password == user.hashed_password:
-        session_id = create_session(user.id)
-        user.is_active = True
+    if hashed_password == result.hashed_password:
+        session_id = await create_session(result.id)
+        models.User.__table__.update().where(models.User.id == result.id).values(is_active=True)
         await db.commit()
         return schemas.UserWithSession(
-            id=user.id,
-            user_name=user.user_name,
-            email=user.email,
-            games_played=user.games_played,
-            games_won=user.games_won,
-            is_active=user.is_active,
+            id=result.id,
+            user_name=result.user_name,
+            email=result.email,
+            games_played=result.games_played,
+            games_won=result.games_won,
+            is_active=True,
             session_id=session_id
         )
     raise errors.IncorrectPassword()
