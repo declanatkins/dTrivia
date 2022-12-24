@@ -36,7 +36,7 @@ async def create_game(db: AsyncSession, host_id: int, max_players: int):
         is_started=False,
         is_active=True
     )
-    await db.add(game)
+    db.add(game)
     await db.commit()
     return schemas.GameWithJoiningCode(
         joining_code=joining_code,
