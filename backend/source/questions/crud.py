@@ -13,14 +13,16 @@ async def get_categories(db: AsyncSession):
 
 
 async def get_category(db: AsyncSession, category_id: int):
-    result = await db.query(models.Category).filter(models.Category.id == category_id).first()
+    result = await db.query(models.Category).filter(models.Category.id == category_id)
+    result = result.first()
     if result is None:
         raise errors.CategoryNotFound(category_id)
     return schemas.CategoryWithId(id=result.id, name=result.name, description=result.description)
 
 
 async def get_category_by_name(db: AsyncSession, name: str):
-    result = await db.query(models.Category).filter(models.Category.name == name).first()
+    result = await db.query(models.Category).filter(models.Category.name == name)
+    result = result.first()
     if result is None:
         raise errors.CategoryNotFound(name)
     return schemas.CategoryWithId(id=result.id, name=result.name, description=result.description)

@@ -1,3 +1,4 @@
+from typing import Union
 from fastapi import APIRouter, Header, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from users.errors import UserNotLoggedIn
@@ -26,13 +27,13 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
 
 @router.post("/login", response_model=schemas.UserWithSession)
 async def login_user(
-        user: schemas.UserLoginByUsername or schemas.UserLoginByEmail,
+        user: schemas.UserLoginByUsername | schemas.UserLoginByEmail,
         db: AsyncSession = Depends(get_db)
 ):
     if isinstance(user, schemas.UserLoginByUsername):
-        user = await crud.login_user(db, user.user_name, user.password)
+        user = await crud.login_user_by_user_name(db, user.user_name, user.password)
     else:
-        user = await crud.login_user(db, user.email, user.password)
+        user = await crud.login_user_by_email(db, user.email, user.password)
     return user
 
 

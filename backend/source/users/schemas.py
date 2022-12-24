@@ -10,12 +10,12 @@ class UserCreate(UserBase):
     password: str
 
 
-class UserLoginByUsername(UserBase):
+class UserLoginByUsername(BaseModel):
     password: str
     user_name: str
 
 
-class UserLoginByEmail(UserBase):
+class UserLoginByEmail(BaseModel):
     password: str
     email: str
 

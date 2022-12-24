@@ -13,6 +13,7 @@ with open(os.path.join(os.path.dirname(__file__), "docker_names.json")) as f:
 
 async def get_active_games(db: AsyncSession):
     active_games = await db.execute(models.Game.__table__.select().where(models.Game.is_active == True))
+    active_games = active_games.all()
     return [
         schemas.BaseGame(
             host_player=game.host_id,
@@ -50,6 +51,7 @@ async def create_game(db: AsyncSession, host_id: int, max_players: int):
 
 async def join_game(db: AsyncSession, joining_code: str, user_id: int):
     game = await db.execute(models.Game.__table__.select().where(models.Game.joining_code == joining_code))
+    game = game.first()
     if not game:
         raise errors.GameNotFound
     if game.is_started:
@@ -73,6 +75,7 @@ async def join_game(db: AsyncSession, joining_code: str, user_id: int):
 
 async def leave_game(db: AsyncSession, joining_code: str, user_id: int):
     game = await db.execute(models.Game.__table__.select().where(models.Game.joining_code == joining_code))
+    game = game.first()
     if not game:
         raise errors.GameNotFound
     if user_id not in game.players:
@@ -96,6 +99,7 @@ async def leave_game(db: AsyncSession, joining_code: str, user_id: int):
 
 async def start_game(db: AsyncSession, joining_code: str, user_id: int):
     game = await db.execute(models.Game.__table__.select().where(models.Game.joining_code == joining_code))
+    game = game.first()
     if not game:
         raise errors.GameNotFound
     if user_id != game.host_id:
@@ -119,6 +123,7 @@ async def start_game(db: AsyncSession, joining_code: str, user_id: int):
 
 async def end_game(db: AsyncSession, joining_code: str, user_id: int, winner: int):
     game = await db.execute(models.Game.__table__.select().where(models.Game.joining_code == joining_code))
+    game = game.first()
     if not game:
         raise errors.GameNotFound
     if user_id != game.host_id:

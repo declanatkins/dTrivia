@@ -7,7 +7,8 @@ from users.session import create_session
 
 
 async def get_user(db: AsyncSession, user_id: int):
-    result =  await db.query(models.User).filter(models.User.id == user_id).first()
+    result = await db.execute(models.User.__table__.select().where(models.User.id == user_id))
+    result = result.first()
     if result is None:
         raise errors.UserNotFound(user_id)
     return schemas.User(
@@ -19,21 +20,25 @@ async def get_user(db: AsyncSession, user_id: int):
 
 
 async def get_user_by_user_name(db: AsyncSession, user_name: str):
-    result = await db.query(models.User).filter(models.User.user_name == user_name).first()
+    result = await db.execute(models.User.__table__.select().where(models.User.user_name == user_name))
+    result = result.first()
     if result is None:
-        raise errors.UserNotFound(user_name)
+        raise errors.UserDoesNotExist(user_name)
     return schemas.User(
         id=result.id,
         user_name=result.user_name,
         email=result.email,
-        is_active=result.is_active
+        is_active=result.is_active,
+        games_played=result.games_played,
+        games_won=result.games_won
     )
 
 
 async def get_user_by_email(db: AsyncSession, email: str):
-    result =  await db.query(models.User).filter(models.User.email == email).first()
+    result =  await db.execute(models.User.__table__.select().where(models.User.email == email))
+    result = result.first()
     if result is None:
-        raise errors.UserNotFound(email)
+        raise errors.UserDoesNotExist(email)
     return schemas.User(
         id=result.id,
         user_name=result.user_name,
