@@ -52,10 +52,11 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
     db_user = models.User(
         user_name=user.user_name,
         email=user.email,
-        hashed_password=str(hashed_password),
+        hashed_password=hashed_password,
         salt=salt
     )
-    await db.add(db_user)
+
+    db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
     return schemas.User(
@@ -78,7 +79,7 @@ async def login_user_by_user_name(db: AsyncSession, user_name: str, password: st
         user.salt,
         100000
     )
-    if str(hashed_password) == user.hashed_password:
+    if hashed_password == user.hashed_password:
         session_id = create_session(user.id)
         user.is_active = True
         await db.commit()
@@ -104,7 +105,7 @@ async def login_user_by_email(db: AsyncSession, email: str, password: str):
         user.salt,
         100000
     )
-    if str(hashed_password) == user.hashed_password:
+    if hashed_password == user.hashed_password:
         session_id = create_session(user.id)
         user.is_active = True
         await db.commit()

@@ -32,7 +32,7 @@ async def create_category(db: AsyncSession, category: schemas.Category):
         raise errors.CategoryAlreadyExists(category.name)
     except errors.CategoryNotFound:
         db_category = models.Category(name=category.name, description=category.description)
-        await db.add(db_category)
+        db.add(db_category)
         await db.commit()
         await db.refresh(db_category)
         return db_category
@@ -63,7 +63,7 @@ async def create_question(db: AsyncSession, question: schemas.Question):
         answers=question.answers,
         correct_answer=question.correct_answer
     )
-    await db.add(db_question)
+    db.add(db_question)
     await db.commit()
     await db.refresh(db_question)
     return schemas.QuestionWithId(
