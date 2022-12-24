@@ -18,7 +18,31 @@ def login_required(func):
     return wrapper
 
 
-def make_backend_request(method, path, data=None):
+def make_backend_request(method, path, data=None, auth=True):
+    if auth:
+        return make_backend_request_with_auth(method, path, data)
+    else:
+        return make_backend_request_without_auth(method, path, data)
+
+
+def make_backend_request_without_auth(method, path, data=None):
+    methods = {
+        'post': requests.post,
+        'get': requests.get,
+        'put': requests.put,
+        'delete': requests.delete
+    }
+    try:
+        method = methods[method]
+    except KeyError:
+        raise AttributeError('Unkown request type')
+    
+    url = os.path.join(settings.BACKEND_URL, path)
+    response = method(url, json=data)
+    return response
+
+
+def make_backend_request_with_auth(method, path, data=None):
     methods = {
         'post': requests.post,
         'get': requests.get,

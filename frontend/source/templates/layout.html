@@ -20,41 +20,30 @@
   {% endif %}
 {% endwith %}
 
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+<nav class="navbar navbar-default">
   <div class="container-fluid">
-      <div class="navbar-header">
-          <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#myNavbar">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="/">dTrivia</a>
-      </div>
+    <div class="navbar-header">
+      <a class="navbar-brand" href="{{ url_for('index') }}">dTrivia</a>
+    </div>
 
-      <div class="collapse navbar-collapse" id="myNavbar">
-      <!-- <ul class="navbar-nav mr-auto">
-          {% if session.get("current_user", None) != None %}
-            <li class="nav-item"><a class="nav-link" href="/create-media">Create Media</a></li>
-            <li class="nav-item"><a class="nav-link" href="/view-media">View Media</a></li>
-          {% endif%}
-      </ul> -->
-      
-      <ul class="nav navbar-nav navbar-right">
-      {% if session.get("current_user", None) == None %}
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
-            <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
-        </ul>
-      {% else %}
-        <li class="nav-item">
-            <a class="nav-link"><b>{{ session.get("current_user") }}</b></a>
-        </li>
-        <li class="nav-item"><a class="nav-link" href="/logout"><b><u>Logout</u></b></a>
-        </li>
-      {% endif %}
+    {% if session.get("session_id", None) == None %}
+      <ul class="nav navbar-nav">
+        <li id="home-nav-button"><a href="{{ url_for('index') }}">Home</a></li>
+        <li id="nav-button-1"><a href="{{ url_for('login') }}">Login</a></li>
+        <li id="nav-button-2"><a href="{{ url_for('register') }}">Register</a></li>
       </ul>
-      </div>
-                      
+    {% else %}
+      <ul class="nav navbar-nav">
+        <li id="home-nav-button"><a href="#">Home</a></li>
+        <li id="nav-button-1"><a href="#">Create Game</a></li>
+        <li id="nav-button-2"><a href="#">Join Game</a></li>
+      </ul>
+
+      <ul class="nav navbar-nav navbar-right">
+        <li><p class="navbar-brand">Welcome {{ session['user_name'] }}</p></li>
+        <li><a href="{{ url_for('logout') }}"><span class="glyphicon glyphicon-log-in"></span> Logout</a></li>
+      </ul>
+    {% endif %}
   </div>
 </nav>
 
@@ -66,4 +55,19 @@
   
   </div>
 
+  <script>
+    // set active nav button
+    button1 = document.getElementById("nav-button-1");
+    button2 = document.getElementById("nav-button-2");
+    homeButton = document.getElementById("home-nav-button");
+
+    if (window.location.pathname == "/login") {
+      button1.className = "active";
+    } else if (window.location.pathname == "/register") {
+      button2.className = "active";
+    } else {
+      homeButton.className = "active";
+    }
+
+  </script>
 </html>

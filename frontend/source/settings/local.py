@@ -4,6 +4,7 @@ import os
 # Flask settings
 FLASK_HOST  = "localhost"
 FLASK_PORT  = "5000"
+FLASK_SECRET_KEY  = os.getenv("FLASK_SECRET", "secret")
 
 
 # Redis settings
