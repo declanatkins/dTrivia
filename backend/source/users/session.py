@@ -19,8 +19,8 @@ async def create_session(user_id: str) -> str:
     if session_id:
         return session_id
     session_id = os.urandom(32).hex()
-    await redis.set(user_id, session_id)
-    await redis.expire(user_id, 3600)
+    await redis.set(session_id, user_id)
+    await redis.expire(session_id, 3600)
     return session_id
 
 

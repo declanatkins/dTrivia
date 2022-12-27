@@ -4,7 +4,8 @@ from questions import models, schemas, errors
 
 
 async def get_categories(db: AsyncSession):
-    results = await db.query(models.Category).all()
+    results = await db.execute(models.Category.__table__.select())
+    results = results.all()
     return [
         schemas.CategoryWithId(
             id=result.id, name=result.name, description=result.description
@@ -13,7 +14,7 @@ async def get_categories(db: AsyncSession):
 
 
 async def get_category(db: AsyncSession, category_id: int):
-    result = await db.query(models.Category).filter(models.Category.id == category_id)
+    result = await db.execute(models.Category.__table__.select().where(models.Category.id == category_id))
     result = result.first()
     if result is None:
         raise errors.CategoryNotFound(category_id)
@@ -21,7 +22,7 @@ async def get_category(db: AsyncSession, category_id: int):
 
 
 async def get_category_by_name(db: AsyncSession, name: str):
-    result = await db.query(models.Category).filter(models.Category.name == name)
+    result = await db.execute(models.Category.__table__.select().where(models.Category.name == name))
     result = result.first()
     if result is None:
         raise errors.CategoryNotFound(name)
@@ -78,7 +79,8 @@ async def create_question(db: AsyncSession, question: schemas.Question):
 
 
 async def get_question(db: AsyncSession, question_id: int):
-    result = await db.query(models.Question).filter(models.Question.id == question_id).first()
+    result = await db.execute(models.Question.__table__.select().where(models.Question.id == question_id))
+    result = result.first()
     if result is None:
         raise errors.QuestionNotFound(question_id)
     category_name = await get_category(db, result.category_id).name
@@ -120,10 +122,10 @@ async def delete_question(db: AsyncSession, question_id: int):
 
 
 async def get_random_question(db: AsyncSession, exclude_ids: list[int]=list()):
-    result = await db.query(models.Question) \
-        .filter(~models.Question.id.in_(exclude_ids)) \
-        .order_by(func.random()) \
-        .first()
+    result = await db.execute(
+        models.Question.__table__.select().where(~models.Question.id.in_(exclude_ids)).order_by(func.random()).limit(1)
+    )
+    result = result.first()
     if result is None:
         raise errors.NoQuestionsFound()
     return schemas.QuestionWithId(
@@ -137,11 +139,11 @@ async def get_random_question(db: AsyncSession, exclude_ids: list[int]=list()):
 
 async def get_random_question_by_category(db: AsyncSession, category_name: str, exclude_ids: list[int]=list()):
     category_id = await get_category_by_name(db, category_name)
-    result = await db.query(models.Question) \
-        .filter(models.Question.category_id == category_id) \
-        .filter(~models.Question.id.in_(exclude_ids)) \
-        .order_by(func.random()) \
-        .first()
+    result = await db.execute(models.Question.__table__.select().where(
+        ~models.Question.id.in_(exclude_ids) & (models.Question.category_id == category_id)
+    ).order_by(func.random()).limit(1))
+    result = result.first()
+
     if result is None:
         raise errors.NoQuestionsFound()
 
