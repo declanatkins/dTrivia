@@ -4,17 +4,13 @@ from users.schemas import User
 
 
 class CreateGame(BaseModel):
-    host_player: User
+    host_player: int
     max_players: int
 
 
 class BaseGame(CreateGame):
     is_started: bool
     is_active: bool
-
-
-class GameWithJoiningCode(BaseGame):
-    joining_code: str
 
 
 class JoinedGame(BaseGame):

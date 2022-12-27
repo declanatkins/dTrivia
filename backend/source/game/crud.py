@@ -3,6 +3,7 @@ import json
 import random
 from sqlalchemy.ext.asyncio import AsyncSession
 from game import models, schemas, errors
+from users.crud import get_user_by_id
 
 
 with open(os.path.join(os.path.dirname(__file__), "docker_names.json")) as f:
@@ -17,7 +18,6 @@ async def get_active_games(db: AsyncSession):
     return [
         schemas.BaseGame(
             host_player=game.host_id,
-            player_count=len(game.players),
             max_players=game.max_players,
             is_started=game.is_started,
             is_active=game.is_active
@@ -26,6 +26,7 @@ async def get_active_games(db: AsyncSession):
 
 
 async def create_game(db: AsyncSession, host_id: int, max_players: int):
+    print('here', flush=True)
     left = random.choice(LEFT_NAMES)
     right = random.choice(RIGHT_NAMES)
     joining_code = f"{left}-{right}"
@@ -35,17 +36,18 @@ async def create_game(db: AsyncSession, host_id: int, max_players: int):
         players=[host_id],
         max_players=max_players,
         is_started=False,
-        is_active=True
+        is_active=True,
+        winner=None
     )
     db.add(game)
     await db.commit()
-    return schemas.GameWithJoiningCode(
+    return schemas.JoinedGame(
         joining_code=joining_code,
         host_player=host_id,
-        player_count=1,
         max_players=max_players,
         is_started=False,
-        is_active=True
+        is_active=True,
+        players=[await get_user_by_id(db, host_id)]
     )
 
 
@@ -65,11 +67,10 @@ async def join_game(db: AsyncSession, joining_code: str, user_id: int):
     return schemas.JoinedGame(
         joining_code=joining_code,
         host_player=game.host_id,
-        player_count=len(game.players),
         max_players=game.max_players,
         is_started=game.is_started,
         is_active=game.is_active,
-        players=game.players
+        players=[await get_user_by_id(db, player_id) for player_id in game.players]
     )
 
 
@@ -89,11 +90,10 @@ async def leave_game(db: AsyncSession, joining_code: str, user_id: int):
     return schemas.JoinedGame(
         joining_code=joining_code,
         host_player=game.host_id,
-        player_count=len(game.players),
         max_players=game.max_players,
         is_started=game.is_started,
         is_active=game.is_active,
-        players=game.players
+        players=[await get_user_by_id(db, player_id) for player_id in game.players]
     )
 
 
@@ -113,11 +113,10 @@ async def start_game(db: AsyncSession, joining_code: str, user_id: int):
     return schemas.JoinedGame(
         joining_code=joining_code,
         host_player=game.host_id,
-        player_count=len(game.players),
         max_players=game.max_players,
         is_started=game.is_started,
         is_active=game.is_active,
-        players=game.players
+        players=[await get_user_by_id(db, player_id) for player_id in game.players]
     )
 
 
@@ -135,9 +134,8 @@ async def end_game(db: AsyncSession, joining_code: str, user_id: int, winner: in
     return schemas.JoinedGame(
         joining_code=joining_code,
         host_player=game.host_id,
-        player_count=len(game.players),
         max_players=game.max_players,
         is_started=game.is_started,
         is_active=game.is_active,
-        players=game.players
+        players=[await get_user_by_id(db, player_id) for player_id in game.players]
     )

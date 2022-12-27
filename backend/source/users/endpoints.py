@@ -1,7 +1,5 @@
-from typing import Union
 from fastapi import APIRouter, Header, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from users.errors import UserNotLoggedIn
 from users import schemas, crud, models
 from users.session import validate_session, delete_session
 from db import engine, get_db
@@ -20,7 +18,7 @@ async def startup():
         await conn.run_sync(models.Base.metadata.create_all)
 
 
-@router.post("/", response_model=schemas.User)
+@router.post("/", response_model=schemas.User, status_code=201)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     return await crud.create_user(db, user)
 

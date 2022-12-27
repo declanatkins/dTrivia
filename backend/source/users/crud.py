@@ -1,21 +1,24 @@
 import hashlib
 import os
+import logging
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from users import models, schemas, errors
 from users.session import create_session
 
 
-async def get_user(db: AsyncSession, user_id: int):
+async def get_user_by_id(db: AsyncSession, user_id: int):
     result = await db.execute(models.User.__table__.select().where(models.User.id == user_id))
     result = result.first()
     if result is None:
-        raise errors.UserNotFound(user_id)
+        raise errors.UserDoesNotExist(user_id)
     return schemas.User(
         id=result.id,
         user_name=result.user_name,
         email=result.email,
-        is_active=result.is_active
+        is_active=result.is_active,
+        games_played=result.games_played,
+        games_won=result.games_won
     )
 
 
