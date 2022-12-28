@@ -42,7 +42,6 @@ async def get_game(db: AsyncSession, joining_code: str):
     )
 
 async def create_game(db: AsyncSession, host_id: int, max_players: int):
-    print('here', flush=True)
     left = random.choice(LEFT_NAMES)
     right = random.choice(RIGHT_NAMES)
     joining_code = f"{left}-{right}"
