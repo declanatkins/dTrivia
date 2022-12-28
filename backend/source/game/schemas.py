@@ -16,3 +16,8 @@ class BaseGame(CreateGame):
 class JoinedGame(BaseGame):
     joining_code: str
     players: List[User]
+
+
+class Game(BaseGame):
+    player_count: int
+    host_player_object: User

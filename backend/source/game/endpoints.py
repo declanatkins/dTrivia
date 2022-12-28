@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from users.session import validate_session, get_user_id
@@ -19,9 +20,9 @@ async def startup():
         await conn.run_sync(models.Base.metadata.create_all)
 
 
-@router.get("/", response_model=schemas.BaseGame)
-async def get_active_games():
-    return await crud.get_active_games()
+@router.get("/", response_model=List[schemas.Game])
+async def get_active_games(db: AsyncSession=Depends(get_db)):
+    return await crud.get_active_games(db)
 
 
 @router.post("/", response_model=schemas.JoinedGame, status_code=status.HTTP_201_CREATED)

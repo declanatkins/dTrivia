@@ -16,11 +16,13 @@ async def get_active_games(db: AsyncSession):
     active_games = await db.execute(models.Game.__table__.select().where(models.Game.is_active == True))
     active_games = active_games.all()
     return [
-        schemas.BaseGame(
+        schemas.Game(
             host_player=game.host_id,
             max_players=game.max_players,
             is_started=game.is_started,
-            is_active=game.is_active
+            is_active=game.is_active,
+            player_count=len(game.players),
+            host_player_object = await get_user_by_id(db, game.host_id)
         ) for game in active_games
     ]
 
