@@ -28,7 +28,7 @@ async def get_user_id(session_id: str = Header()) -> str:
     user_id = await redis.get(f'sessions/{session_id}')
     if user_id:
         await redis.expire(f'sessions/{session_id}', 3600)
-        return user_id
+        return int(user_id)
     raise UserNotLoggedIn()
 
 
