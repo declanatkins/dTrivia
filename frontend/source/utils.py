@@ -59,5 +59,8 @@ def make_backend_request_with_auth(method, path, data=None):
     }
 
     url = os.path.join(settings.BACKEND_URL, path)
-    response = method(url, json=data, headers=headers)
+    if data is None:
+        response = method(url, headers=headers)
+    else:
+        response = method(url, json=data, headers=headers)
     return response

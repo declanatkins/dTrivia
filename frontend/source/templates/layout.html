@@ -29,14 +29,14 @@
     {% if session.get("session_id", None) == None %}
       <ul class="nav navbar-nav">
         <li id="home-nav-button"><a href="{{ url_for('index') }}">Home</a></li>
-        <li id="nav-button-1"><a href="{{ url_for('login') }}">Login</a></li>
-        <li id="nav-button-2"><a href="{{ url_for('register') }}">Register</a></li>
+        <li id="nav-button-1"><a href="{{ url_for('login_page') }}">Login</a></li>
+        <li id="nav-button-2"><a href="{{ url_for('register_page') }}">Register</a></li>
       </ul>
     {% else %}
       <ul class="nav navbar-nav">
-        <li id="home-nav-button"><a href="#">Home</a></li>
-        <li id="nav-button-1"><a href="#">Create Game</a></li>
-        <li id="nav-button-2"><a href="#">Join Game</a></li>
+        <li id="home-nav-button"><a href="{{ url_for('index') }}">Home</a></li>
+        <li id="nav-button-1"><a href="{{ url_for('create_game_page') }}">Create Game</a></li>
+        <li id="nav-button-2"><a href="{{ url_for('join_game_page') }}">Join Game</a></li>
       </ul>
 
       <ul class="nav navbar-nav navbar-right">
