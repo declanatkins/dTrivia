@@ -1,6 +1,5 @@
 import hashlib
 import os
-import logging
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from users import models, schemas, errors
@@ -84,7 +83,7 @@ async def login_user_by_user_name(db: AsyncSession, user_name: str, password: st
     )
     if hashed_password == result.hashed_password:
         session_id = await create_session(result.id)
-        models.User.__table__.update().where(models.User.id == result.id).values(is_active=True)
+        await db.execute(models.User.__table__.update().where(models.User.id == result.id).values(is_active=True))
         await db.commit()
         return schemas.UserWithSession(
             id=result.id,
@@ -111,7 +110,7 @@ async def login_user_by_email(db: AsyncSession, email: str, password: str):
     )
     if hashed_password == result.hashed_password:
         session_id = await create_session(result.id)
-        models.User.__table__.update().where(models.User.id == result.id).values(is_active=True)
+        await db.execute(models.User.__table__.update().where(models.User.id == result.id).values(is_active=True))
         await db.commit()
         return schemas.UserWithSession(
             id=result.id,
