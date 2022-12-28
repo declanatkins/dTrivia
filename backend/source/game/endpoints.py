@@ -2,9 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from users.session import validate_session, get_user_id
 from db import engine, get_db
-from game import crud, schemas, models
-
-
+from game import crud, schemas, models, errors
 
 
 router = APIRouter(
@@ -29,6 +27,14 @@ async def get_active_games():
 @router.post("/", response_model=schemas.JoinedGame, status_code=status.HTTP_201_CREATED)
 async def create_game(game: schemas.CreateGame, db: AsyncSession=Depends(get_db)):
     return await crud.create_game(db, game.host_player, game.max_players)
+
+
+@router.get("/{joining_code}", response_model=schemas.JoinedGame)
+async def get_game(joining_code: str, user_id: int=Depends(get_user_id), db: AsyncSession=Depends(get_db)):
+    try:
+        return await crud.join_game(db, joining_code, user_id)
+    except errors.UserAlreadyInGame:
+        return await crud.get_game(db, joining_code)
 
 
 @router.post("/{joining_code}/join", response_model=schemas.JoinedGame)

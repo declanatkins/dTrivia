@@ -25,6 +25,20 @@ async def get_active_games(db: AsyncSession):
     ]
 
 
+async def get_game(db: AsyncSession, joining_code: str):
+    game = await db.execute(models.Game.__table__.select().where(models.Game.joining_code == joining_code))
+    game = game.first()
+    if game is None:
+        raise errors.GameNotFound
+    return schemas.JoinedGame(
+        joining_code=joining_code,
+        host_player=game.host_id,
+        max_players=game.max_players,
+        is_started=game.is_started,
+        is_active=game.is_active,
+        players=[await get_user_by_id(db, int(player_id)) for player_id in game.players]
+    )
+
 async def create_game(db: AsyncSession, host_id: int, max_players: int):
     print('here', flush=True)
     left = random.choice(LEFT_NAMES)
@@ -70,7 +84,7 @@ async def join_game(db: AsyncSession, joining_code: str, user_id: int):
         max_players=game.max_players,
         is_started=game.is_started,
         is_active=game.is_active,
-        players=[await get_user_by_id(db, player_id) for player_id in game.players]
+        players=[await get_user_by_id(db, int(player_id)) for player_id in game.players]
     )
 
 
@@ -93,7 +107,7 @@ async def leave_game(db: AsyncSession, joining_code: str, user_id: int):
         max_players=game.max_players,
         is_started=game.is_started,
         is_active=game.is_active,
-        players=[await get_user_by_id(db, player_id) for player_id in game.players]
+        players=[await get_user_by_id(db, int(player_id)) for player_id in game.players]
     )
 
 
@@ -116,7 +130,7 @@ async def start_game(db: AsyncSession, joining_code: str, user_id: int):
         max_players=game.max_players,
         is_started=game.is_started,
         is_active=game.is_active,
-        players=[await get_user_by_id(db, player_id) for player_id in game.players]
+        players=[await get_user_by_id(db, int(player_id)) for player_id in game.players]
     )
 
 
@@ -137,5 +151,5 @@ async def end_game(db: AsyncSession, joining_code: str, user_id: int, winner: in
         max_players=game.max_players,
         is_started=game.is_started,
         is_active=game.is_active,
-        players=[await get_user_by_id(db, player_id) for player_id in game.players]
+        players=[await get_user_by_id(db, int(player_id)) for player_id in game.players]
     )

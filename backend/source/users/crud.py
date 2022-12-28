@@ -75,7 +75,7 @@ async def login_user_by_user_name(db: AsyncSession, user_name: str, password: st
     result = await db.execute(models.User.__table__.select().where(models.User.user_name == user_name))
     result = result.first()
     if not result:
-        raise errors.UserNotFound(user_name)
+        raise errors.UserDoesNotExist(user_name)
     hashed_password = hashlib.pbkdf2_hmac(
         'sha256',
         password.encode('utf-8'),
@@ -102,7 +102,7 @@ async def login_user_by_email(db: AsyncSession, email: str, password: str):
     result =  await db.execute(models.User.__table__.select().where(models.User.email == email))
     result = result.first()
     if not result:
-        raise errors.UserNotFound(email)
+        raise errors.UserDoesNotExist(email)
     hashed_password = hashlib.pbkdf2_hmac(
         'sha256',
         password.encode('utf-8'),
