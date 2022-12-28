@@ -13,7 +13,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, clas
 Base = declarative_base()
 
 
-async def get_db():
+async def get_db() -> AsyncSession:
     db = SessionLocal()
     try:
         yield db

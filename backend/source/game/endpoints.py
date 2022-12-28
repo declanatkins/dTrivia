@@ -1,9 +1,14 @@
 from typing import List
+from aioredis import Redis
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from users.session import validate_session, get_user_id
 from db import engine, get_db
 from game import crud, schemas, models, errors
+from settings import get_settings
+
+
+settings = get_settings()
 
 
 router = APIRouter(
@@ -18,6 +23,26 @@ router = APIRouter(
 async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
+    
+    # See what games are in the DB and not in redis
+    # If they're not in redis, mark them as inactive
+    # If they're in redis, mark them as active
+
+    
+    redis = Redis(
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        password=settings.REDIS_PASSWORD,
+        db=settings.REDIS_DB
+    )
+
+    async with engine.begin() as db:
+        active_games = await db.execute(models.Game.__table__.select().where(models.Game.is_active == True))
+        active_games = active_games.all()
+        games_in_redis = await redis.keys("games/*")
+        for game in active_games:
+            if game.joining_code not in games_in_redis:
+                await db.execute(models.Game.__table__.update().where(models.Game.id == game.id).values(is_active=False))
 
 
 @router.get("/", response_model=List[schemas.Game])
