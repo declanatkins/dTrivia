@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block page_title %}{% endblock %}
+{% block body %}
+
+{% if game.is_started %}
+    <!-- game is started -->
+    <div class="row">
+        <div class="col-md-6">
+            <h2>Game is started</h2>
+            <p>Game is started</p>
+        </div>
+    </div>
+{% else %}
+    <div class="row justify-content-center">
+        <div class="col-auto">
+            <table class="table table-responsive">
+            <tr>
+                <th>Joining Code</th>
+                <th>Players</th>
+            </tr>
+            <tr>
+                <td>{{ game.joining_code }}</td>
+                <td>
+                    {% for player in game_players %}
+                        <p>{{ player }}</p>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% if session.get('user_id') == game_host_id %}
+                <tr>
+                    <td colspan="2">
+                        <form action="/start-game" method="post">
+                            <input type="hidden" name="joining_code" value="{{ game.joining_code }}">
+                            <button type="submit" class="btn btn-primary">Start Game</button>
+                        </form>
+                        <form action="/cancel-game" method="post">
+                            <input type="hidden" name="joining_code" value="{{ game.joining_code }}">
+                            <button type="submit" class="btn btn-primary">Cancel Game</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="2">
+                        <form action="/leave-game" method="post">
+                            <input type="hidden" name="joining_code" value="{{ game.joining_code }}">
+                            <button type="submit" class="btn btn-primary">Leave Game</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endif %}
+            </table>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}
