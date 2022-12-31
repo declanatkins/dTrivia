@@ -17,7 +17,7 @@ async def get_category(db: AsyncSession, category_id: int):
     result = await db.execute(models.Category.__table__.select().where(models.Category.id == category_id))
     result = result.first()
     if result is None:
-        raise errors.CategoryNotFound(category_id)
+        raise errors.CategoryDoesNotExist(category_id)
     return schemas.CategoryWithId(id=result.id, name=result.name, description=result.description)
 
 
@@ -25,7 +25,7 @@ async def get_category_by_name(db: AsyncSession, name: str):
     result = await db.execute(models.Category.__table__.select().where(models.Category.name == name))
     result = result.first()
     if result is None:
-        raise errors.CategoryNotFound(name)
+        raise errors.CategoryDoesNotExist(name)
     return schemas.CategoryWithId(id=result.id, name=result.name, description=result.description)
 
 
@@ -33,12 +33,14 @@ async def create_category(db: AsyncSession, category: schemas.Category):
     try:
         await get_category_by_name(db, category.name)
         raise errors.CategoryAlreadyExists(category.name)
-    except errors.CategoryNotFound:
+    except errors.CategoryDoesNotExist:
         db_category = models.Category(name=category.name, description=category.description)
         db.add(db_category)
         await db.commit()
         await db.refresh(db_category)
-        return db_category
+        return schemas.CategoryWithId(
+            id=db_category.id, name=db_category.name, description=db_category.description
+        )
 
 
 async def update_category(db: AsyncSession, category: schemas.Category, category_id: int):
@@ -59,7 +61,8 @@ async def delete_category(db: AsyncSession, category_id: int):
 
 
 async def create_question(db: AsyncSession, question: schemas.Question):
-    category_id = await get_category_by_name(db, question.category_name)
+    category = await get_category_by_name(db, question.category_name)
+    category_id = category.id
     db_question = models.Question(
         question=question.question,
         category_id=category_id,
@@ -94,7 +97,8 @@ async def get_question(db: AsyncSession, question_id: int):
 
 
 async def update_question(db: AsyncSession, question: schemas.Question, question_id: int):
-    category_id = await get_category_by_name(db, question.category_name).id
+    category = await get_category_by_name(db, question.category_name)
+    category_id = category.id
     db_question = await get_question(db, question_id)
     if not db_question:
         return errors.QuestionNotFound
@@ -138,7 +142,8 @@ async def get_random_question(db: AsyncSession, exclude_ids: list[int]=list()):
 
 
 async def get_random_question_by_category(db: AsyncSession, category_name: str, exclude_ids: list[int]=list()):
-    category_id = await get_category_by_name(db, category_name)
+    category = await get_category_by_name(db, category_name)
+    category_id = category.id
     result = await db.execute(models.Question.__table__.select().where(
         ~models.Question.id.in_(exclude_ids) & (models.Question.category_id == category_id)
     ).order_by(func.random()).limit(1))

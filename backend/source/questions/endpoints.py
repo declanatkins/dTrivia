@@ -49,7 +49,7 @@ async def get_category(category_name: str, db: AsyncSession = Depends(get_db)):
     return await crud.get_category_by_name(db, category_name)
 
 
-@categories_router.post("/", response_model=schemas.CategoryWithId, dependencies=[Depends(validate_session)])
+@categories_router.post("/", response_model=schemas.CategoryWithId, dependencies=[Depends(validate_session)], status_code=201)
 async def create_category(category: schemas.Category, db: AsyncSession = Depends(get_db)):
     return await crud.create_category(db, category)
 
@@ -89,7 +89,7 @@ async def get_question(question_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.get_question(db, question_id)
 
 
-@questions_router.post("/", response_model=schemas.QuestionWithId, dependencies=[Depends(validate_session)])
+@questions_router.post("/", response_model=schemas.QuestionWithId, dependencies=[Depends(validate_session)], status_code=201)
 async def create_question(question: schemas.Question, db: AsyncSession = Depends(get_db)):
     return await crud.create_question(db, question)
 
