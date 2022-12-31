@@ -77,7 +77,7 @@ async def join_game(db: AsyncSession, joining_code: str, user_id: int):
         raise errors.UserAlreadyInGame
     if len(game.players) >= game.max_players:
         raise errors.GameAlreadyFull
-    game.players.append(user_id)
+    await db.execute(models.Game.__table__.update().where(models.Game.joining_code == joining_code).values(players=game.players + [user_id]))
     await db.commit()
     return schemas.JoinedGame(
         joining_code=joining_code,
@@ -100,7 +100,7 @@ async def leave_game(db: AsyncSession, joining_code: str, user_id: int):
         raise errors.UserIsHost
     if game.is_started:
         raise errors.GameAlreadyStarted
-    game.players.remove(user_id)
+    await db.execute(models.Game.__table__.update().where(models.Game.joining_code == joining_code).values(players=[player_id for player_id in game.players if player_id != user_id]))
     await db.commit()
     return schemas.JoinedGame(
         joining_code=joining_code,
@@ -123,7 +123,7 @@ async def start_game(db: AsyncSession, joining_code: str, user_id: int):
         raise errors.GameAlreadyStarted
     if len(game.players) < 2:
         raise errors.NotEnoughPlayers
-    game.is_started = True
+    await db.execute(models.Game.__table__.update().where(models.Game.joining_code == joining_code).values(is_started=True))
     await db.commit()
     return schemas.JoinedGame(
         joining_code=joining_code,
@@ -144,7 +144,7 @@ async def end_game(db: AsyncSession, joining_code: str, user_id: int, winner: in
         raise errors.UserNotHost
     if winner not in game.players:
         raise errors.UserNotInGame
-    game.is_active = False
+    await db.execute(models.Game.__table__.update().where(models.Game.joining_code == joining_code).values(is_active=False, winner=winner))
     await db.commit()
     return schemas.JoinedGame(
         joining_code=joining_code,
