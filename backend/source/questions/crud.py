@@ -125,19 +125,21 @@ async def delete_question(db: AsyncSession, question_id: int):
     await db.commit()
 
 
-async def get_random_question(db: AsyncSession, exclude_ids: list[int]=list()):
+async def get_random_question(db: AsyncSession, exclude_ids: list[int]):
     result = await db.execute(
         models.Question.__table__.select().where(~models.Question.id.in_(exclude_ids)).order_by(func.random()).limit(1)
     )
     result = result.first()
     if result is None:
         raise errors.NoQuestionsFound()
+    
+    category = await get_category(db, result.category_id)
     return schemas.QuestionWithId(
         id=result.id,
         question=result.question,
         answers=result.answers,
         correct_answer=result.correct_answer,
-        category_name=get_category(db, result.category_id).name
+        category_name=category.name
     )
 
 

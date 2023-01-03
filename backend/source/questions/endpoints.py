@@ -65,16 +65,20 @@ async def delete_category(category_id: int, db: AsyncSession = Depends(get_db)):
     return Response(status_code=204)
 
 
-@categories_router.get("/{category_name}/random", response_model=schemas.QuestionWithId, dependencies=[Depends(validate_session)])
+@categories_router.get("/actions/{category_name}/random", response_model=schemas.QuestionWithId, dependencies=[Depends(validate_session)])
 async def get_random_question_by_category(
         category_name: str,
         db: AsyncSession = Depends(get_db),
-        exclude_ids: List[int] = Query(list())
+        exclude_ids: int = Query(default=None)
 ):
+    if exclude_ids is None:
+        exclude_ids = []
+    elif isinstance(exclude_ids, int):
+        exclude_ids = [exclude_ids]
     return await crud.get_random_question_by_category(db, category_name, exclude_ids)
 
 
-@categories_router.post("/bulk", dependencies=[Depends(validate_session)])
+@categories_router.post("/actions/bulk", dependencies=[Depends(validate_session)])
 async def bulk_load_categories(
         categories: List[schemas.Category],
         background_tasks: BackgroundTasks,
@@ -105,15 +109,21 @@ async def delete_question(question_id: int, db: AsyncSession = Depends(get_db)):
     return Response(status_code=204)
 
 
-@questions_router.get("/random", response_model=schemas.QuestionWithId, dependencies=[Depends(validate_session)])
+@questions_router.get("/actions/random", response_model=schemas.QuestionWithId, dependencies=[Depends(validate_session)])
 async def get_random_question(
         db: AsyncSession = Depends(get_db),
-        exclude_ids: List[int] = Query(list())
+        exclude_ids: str | None = Query(default=None)
 ):
+    if exclude_ids is None:
+        exclude_ids = []
+    elif isinstance(exclude_ids, str):
+        exclude_ids = [int(exclude_ids)]
+    else:
+        exclude_ids = [int(exclude_id) for exclude_id in exclude_ids]
     return await crud.get_random_question(db, exclude_ids)
 
 
-@questions_router.post("/bulk", dependencies=[Depends(validate_session)])
+@questions_router.post("/actions/bulk", dependencies=[Depends(validate_session)])
 async def bulk_create_questions(
         questions: List[schemas.Question],
         background_tasks: BackgroundTasks,

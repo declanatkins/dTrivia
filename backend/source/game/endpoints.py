@@ -59,7 +59,7 @@ async def create_game(game: schemas.CreateGame, db: AsyncSession=Depends(get_db)
 async def get_game(joining_code: str, user_id: int=Depends(get_user_id), db: AsyncSession=Depends(get_db)):
     try:
         return await crud.join_game(db, joining_code, user_id)
-    except errors.UserAlreadyInGame:
+    except (errors.UserAlreadyInGame, errors.GameAlreadyStarted):
         return await crud.get_game(db, joining_code)
 
 
