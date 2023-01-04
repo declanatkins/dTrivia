@@ -8,7 +8,7 @@ from flask import (
     flash,
     session
 )
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO, emit, join_room, leave_room, emit
 from settings import get_settings
 from utils import login_required, make_backend_request
 from threading import Lock
@@ -81,8 +81,6 @@ def register():
 @login_required
 def create_game_page():
     available_categories = make_backend_request('get', 'questions/categories/').json()
-    print(available_categories)
-    available_categories.extend([{'id': 0, 'name': 'Any'}])
     return render_template('create_game.html', categories=available_categories)
 
 
@@ -92,10 +90,17 @@ def create_game():
     data = request.form.to_dict()
     data['host_player'] = session['user_id']
     response = make_backend_request('post', 'games/', data)
+    exclude_categories = request.form.getlist('excluded_categories')
     if response.status_code == 201:
         flash('Game created successfully')
         # Create the game object
-        game = Game(response.json()['joining_code'], data['max_players'], session['user_id'])
+        game = Game(
+            response.json()['joining_code'],
+            data['max_players'],
+            session['user_id'],
+            data['number_of_questions'],
+            exclude_categories
+        )
         with game_access_lock:
             game.commit_to_redis()
         return redirect(url_for('game_lobby', joining_code=response.json()['joining_code']))
@@ -113,6 +118,7 @@ def join_game_page():
 @login_required
 def join_game():
     data = request.form.to_dict()
+    data['joining_code'] = data['joining_code'].lower()
     response = make_backend_request('post', f'games/{data["joining_code"]}/join')
     if response.status_code == 200:
 
@@ -135,52 +141,182 @@ def join_game():
 @login_required
 def game_lobby(joining_code):
     try:
+        with game_access_lock:
+            game = Game.get_game_from_redis(joining_code)
         backend_game = make_backend_request('get', f'games/{joining_code}').json()
-        game = Game.get_game_from_redis(joining_code)
         game_players = [
             player['user_name'] for player in backend_game['players']
         ]
         game_host_id = backend_game['host_player']
-        print(game_players)
-        print(backend_game)
     except KeyError as e:
         flash('Game not found')
-        print(str(e))
         return redirect(url_for('index'))
     return render_template('game_lobby.html', game=game, game_players=game_players, game_host_id=game_host_id)
 
 
-@app.route('/start-game', methods=['POST'])
-def start_game():
-    data = request.form.to_dict()
+@app.route('/game/<joining_code>/game-room', methods=['GET'])
+@login_required
+def game_room(joining_code):
+    try:
+        with game_access_lock:
+            game = Game.get_game_from_redis(joining_code)
+        backend_game = make_backend_request('get', f'games/{joining_code}').json()
+        print(backend_game)
+        game_players = [
+            player['user_name'] for player in backend_game['players']
+        ]
+        game_host_id = backend_game['host_player']
+        if not backend_game['is_started']:
+            flash('Game has not started yet')
+            return redirect(url_for('game_lobby', joining_code=joining_code))
+    except KeyError as e:
+        print(e)
+        flash('Game not found')
+        return redirect(url_for('index'))
+    return render_template('game.html', game=game, game_players=game_players, game_host_id=game_host_id)
+
+
+@app.route('/game/<joining_code>/results', methods=['GET'])
+@login_required
+def game_results(joining_code):
+    try:
+        with game_access_lock:
+            game = Game.get_game_from_redis(joining_code)
+        backend_game = make_backend_request('get', f'games/{joining_code}').json()
+        user_id_to_name = {
+            player['id']: player['user_name'] for player in backend_game['players']
+        }
+        if not game.is_finished:
+            flash('Game has not finished yet')
+            return redirect(url_for('game_lobby', joining_code=joining_code))
+        
+        sorted_scores = sorted(game.current_scores.items(), key=lambda x: x[1], reverse=True)
+        scores_with_user_names = {
+            user_id_to_name[int(user_id)]: score for user_id, score in sorted_scores
+        }
+        make_backend_request('post', f'games/{joining_code}/end', data={'winner': int(sorted_scores[0][0])})
+        return render_template('results.html', game=game, scores=scores_with_user_names)
+    except KeyError as e:
+        print('end', e)
+        flash('Game not found')
+        return redirect(url_for('index'))
+
+
+@socket_app.on('lobby/join')
+def lobby_on_join(data):
+    join_room(data['joining_code'])
+    backend_game = make_backend_request('get', f'games/{data["joining_code"]}').json()
+    game_players = [
+        player['user_name'] for player in backend_game['players']
+    ]
+    emit('lobby/player-joined', {'players': game_players}, to=data['joining_code'])
+
+
+@socket_app.on('lobby/leave')
+def lobby_on_leave(data):
+    leave_room(data['joining_code'])
+    with game_access_lock:
+        game = Game.get_game_from_redis(data['joining_code'])
+        game.remove_player(session['user_id'])
+        game.commit_to_redis()
+    emit('lobby/player-left', {}, to=data['joining_code'])
+
+
+@socket_app.on('lobby/start-game')
+def lobby_on_start_game(data):
     response = make_backend_request('post', f'games/{data["joining_code"]}/start')
     if response.status_code == 200:
         flash('Game started successfully')
-        return redirect(url_for('game', joining_code=data['joining_code']))
+        with game_access_lock:
+            game = Game.get_game_from_redis(data['joining_code'])
+            game.is_started = True
+            game.commit_to_redis()
+        emit('lobby/game-started', {}, to=data['joining_code'])
     flash(f'Failed to start game: {response.json()["detail"]}')
-    return redirect(url_for('index'))
 
 
-@app.route('/leave-game', methods=['POST'])
-def leave_game():
-    data = request.form.to_dict()
-    response = make_backend_request('post', f'games/{data["joining_code"]}/leave')
-    if response.status_code == 200:
-        flash('Game left successfully')
-        return redirect(url_for('index'))
-    flash(f'Failed to leave game: {response.json()["detail"]}')
-    return redirect(url_for('index'))
-
-
-@app.route('/cancel-game', methods=['POST'])
-def cancel_game():
-    data = request.form.to_dict()
+@socket_app.on('lobby/cancel-game')
+def lobby_on_cancel_game(data):
     response = make_backend_request('post', f'games/{data["joining_code"]}/cancel')
     if response.status_code == 200:
         flash('Game cancelled successfully')
-        return redirect(url_for('index'))
+        with game_access_lock:
+            Game.delete_game_from_redis(data['joining_code'])
+        emit('lobby/game-cancelled', {}, to=data['joining_code'])
     flash(f'Failed to cancel game: {response.json()["detail"]}')
-    return redirect(url_for('index'))
+
+
+@socket_app.on('game/join')
+def game_on_join(data):
+    join_room(data['joining_code'])
+    emit('game/player-joined', to=data['joining_code'])
+
+    with game_access_lock:
+        game = Game.get_game_from_redis(data['joining_code'])
+        game.add_in_game_player(session['user_id'])
+        game.commit_to_redis()
+        if len(game.in_game_players) == len(game.players):
+            emit('game/start', to=data['joining_code'])
+
+
+@socket_app.on('game/next-question')
+def game_on_next_question(data):
+    room = data['joining_code']
+
+    try:
+        with game_access_lock:
+            game = Game.get_game_from_redis(room)
+            game.next_question()
+            game.commit_to_redis()
+
+            question = game.current_question['question']
+            answers = game.current_question['answers']
+
+            emit('game/question', {'question': question, 'answers': answers}, to=room)
+    except ValueError:
+        with game_access_lock:
+            game = Game.get_game_from_redis(room)
+            game.is_finished = True
+            game.commit_to_redis()
+        emit('game/end', to=room)
+
+
+@socket_app.on('game/answer')
+def game_on_answer(data):
+    room = data['joining_code']
+    print('answer', data)
+    with game_access_lock:
+        game = Game.get_game_from_redis(room)
+        correct_answer_idx = game.current_question['correct_answer']
+        correct_answer = game.current_question['answers'][correct_answer_idx]
+
+        if data['answer'] == correct_answer:
+            answer_score = min(10, int(data['time_left']))
+            game.current_scores[str(session['user_id'])] += answer_score
+            game.commit_to_redis()
+
+
+@socket_app.on('game/request-answer')
+def game_on_request_answer(data):
+    room = data['joining_code']
+    with game_access_lock:
+        game = Game.get_game_from_redis(room)
+        correct_answer_idx = game.current_question['correct_answer']
+        correct_answer = game.current_question['answers'][correct_answer_idx]
+        emit('game/correct-answer', correct_answer, to=room)
+
+
+@socket_app.on('game/request-scores')
+def game_on_request_scores(data):
+    room = data['joining_code']
+    backend_game = make_backend_request('get', f'games/{data["joining_code"]}').json()
+    user_id_to_name = {
+        player['id']: player['user_name'] for player in backend_game['players']
+    }
+    with game_access_lock:
+        game = Game.get_game_from_redis(room)
+        scores = [{'name': user_id_to_name[int(user_id)], 'score': score} for user_id, score in game.current_scores.items()]
+        emit('game/scores', scores, to=room)
 
 
 if __name__ == '__main__':

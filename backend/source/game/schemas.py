@@ -21,3 +21,7 @@ class JoinedGame(BaseGame):
 class Game(BaseGame):
     player_count: int
     host_player_object: User
+
+
+class GameEnd(BaseModel):
+    winner: int

@@ -18,14 +18,14 @@ def login_required(func):
     return wrapper
 
 
-def make_backend_request(method, path, data=None, auth=True):
+def make_backend_request(method, path, data=None, auth=True, params=None):
     if auth:
-        return make_backend_request_with_auth(method, path, data)
+        return make_backend_request_with_auth(method, path, data, params)
     else:
-        return make_backend_request_without_auth(method, path, data)
+        return make_backend_request_without_auth(method, path, data, params)
 
 
-def make_backend_request_without_auth(method, path, data=None):
+def make_backend_request_without_auth(method, path, data=None, params=None):
     methods = {
         'post': requests.post,
         'get': requests.get,
@@ -38,11 +38,11 @@ def make_backend_request_without_auth(method, path, data=None):
         raise AttributeError('Unkown request type')
     
     url = os.path.join(settings.BACKEND_URL, path)
-    response = method(url, json=data)
+    response = method(url, json=data, params=params)
     return response
 
 
-def make_backend_request_with_auth(method, path, data=None):
+def make_backend_request_with_auth(method, path, data=None, params=None):
     methods = {
         'post': requests.post,
         'get': requests.get,
@@ -59,8 +59,5 @@ def make_backend_request_with_auth(method, path, data=None):
     }
 
     url = os.path.join(settings.BACKEND_URL, path)
-    if data is None:
-        response = method(url, headers=headers)
-    else:
-        response = method(url, json=data, headers=headers)
+    response = method(url, json=data, headers=headers, params=params)
     return response

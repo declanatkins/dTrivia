@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% block page_title %}{% endblock %}
+{% block body %}
+
+<!-- Table showing the results of the game -->
+
+<div class="row justify-content-center">
+    <div class="col-auto">
+        <table class="table table-responsive">
+            <tr>
+                <th>Player</th>
+                <th>Score</th>
+            </tr>
+            {% for player in scores %}
+                <tr>
+                    <td>{{ player }}</td>
+                    <td id="{{ player }}-score">{{ scores[player] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+{% endblock %}

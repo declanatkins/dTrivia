@@ -2,56 +2,129 @@
 {% block page_title %}{% endblock %}
 {% block body %}
 
-{% if game.is_started %}
-    <!-- game is started -->
-    <div class="row">
-        <div class="col-md-6">
-            <h2>Game is started</h2>
-            <p>Game is started</p>
-        </div>
-    </div>
-{% else %}
-    <div class="row justify-content-center">
-        <div class="col-auto">
-            <table class="table table-responsive">
+<div class="row justify-content-center">
+    <div class="col-auto">
+        <table class="table table-responsive">
+        <tr>
+            <th>Joining Code</th>
+            <th>Players</th>
+        </tr>
+        <tr>
+            <td>{{ game.joining_code }}</td>
+            <td id="player-list">
+                {% for player in game_players %}
+                    <p>{{ player }}</p>
+                {% endfor %}
+            </td>
+        </tr>
+        {% if session.get('user_id') == game_host_id %}
             <tr>
-                <th>Joining Code</th>
-                <th>Players</th>
-            </tr>
-            <tr>
-                <td>{{ game.joining_code }}</td>
-                <td>
-                    {% for player in game_players %}
-                        <p>{{ player }}</p>
-                    {% endfor %}
+                <td colspan="2">
+                    <form onsubmit="startGame()" action="javascript:void(0);">
+                        <input type="hidden" name="joining_code" value="{{ game.joining_code }}">
+                        <button type="submit" class="btn btn-primary">Start Game</button>
+                    </form>
+                    <form onsubmit="cancelGame()" action="javascript:void(0);">
+                        <input type="hidden" name="joining_code" value="{{ game.joining_code }}">
+                        <button type="submit" class="btn btn-primary">Cancel Game</button>
+                    </form>
                 </td>
             </tr>
-            {% if session.get('user_id') == game_host_id %}
-                <tr>
-                    <td colspan="2">
-                        <form action="/start-game" method="post">
-                            <input type="hidden" name="joining_code" value="{{ game.joining_code }}">
-                            <button type="submit" class="btn btn-primary">Start Game</button>
-                        </form>
-                        <form action="/cancel-game" method="post">
-                            <input type="hidden" name="joining_code" value="{{ game.joining_code }}">
-                            <button type="submit" class="btn btn-primary">Cancel Game</button>
-                        </form>
-                    </td>
-                </tr>
-            {% else %}
-                <tr>
-                    <td colspan="2">
-                        <form action="/leave-game" method="post">
-                            <input type="hidden" name="joining_code" value="{{ game.joining_code }}">
-                            <button type="submit" class="btn btn-primary">Leave Game</button>
-                        </form>
-                    </td>
-                </tr>
-            {% endif %}
-            </table>
-        </div>
+        {% else %}
+            <tr>
+                <td colspan="2">
+                    <form onsubmit="leaveGame()" action="javascript:void(0);">
+                        <input type="hidden" name="joining_code" value="{{ game.joining_code }}">
+                        <button type="submit" class="btn btn-primary">Leave Game</button>
+                    </form>
+                </td>
+            </tr>
+        {% endif %}
+        </table>
     </div>
-{% endif %}
+</div>
+
+<script>
+
+    function updatePlayerList(players) {
+        var playerList = document.getElementById('player-list');
+        playerList.innerHTML = '';
+        for (var i = 0; i < players.length; i++) {
+            var player = players[i];
+            var playerElement = document.createElement('p');
+            playerElement.innerHTML = player;
+            playerList.appendChild(playerElement);
+        }
+    }
+
+
+    var socket = io.connect();
+    socket.on('connect', function() {
+        socket.emit('lobby/join', {
+            joining_code: '{{ game.joining_code }}',
+            user_id: '{{ session.get("user_id") }}'
+        });
+    });
+
+    socket.on('lobby/game-started', function(data) {
+        console.log('game started');
+        document.location.href = '{{ url_for("game_room", joining_code=game.joining_code) }}';
+    });
+
+    socket.on('lobby/game-cancelled', function(data) {
+        document.location.href = '{{ url_for("index") }}';
+    });
+
+    socket.on('lobby/player-joined', function(data) {
+        updatePlayerList(data.players);
+    });
+
+    socket.on('lobby/player-left', function(data) {
+        updatePlayerList(data.players);
+    });
+
+    socket.on('disconnect', function() {
+        socket.emit('lobby/leave', {
+            joining_code: '{{ game.joining_code }}',
+            user_id: '{{ session.get("user_id") }}'
+        });
+    });
+
+    window.onbeforeunload = function() {
+        socket.emit('lobby/leave', {
+            joining_code: '{{ game.joining_code }}',
+            user_id: '{{ session.get("user_id") }}'
+        });
+    };
+
+    window.onunload = function() {
+        socket.emit('lobby/leave', {
+            joining_code: '{{ game.joining_code }}',
+            user_id: '{{ session.get("user_id") }}'
+        });
+    };
+
+    function startGame() {
+        console.log('start game');
+        socket.emit('lobby/start-game', {
+            joining_code: '{{ game.joining_code }}',
+            user_id: '{{ session.get("user_id") }}'
+        });
+    }
+
+    function cancelGame() {
+        socket.emit('lobby/cancel-game', {
+            joining_code: '{{ game.joining_code }}',
+            user_id: '{{ session.get("user_id") }}'
+        });
+    }
+
+    function leaveGame() {
+        socket.emit('lobby/leave', {
+            joining_code: '{{ game.joining_code }}',
+            user_id: '{{ session.get("user_id") }}'
+        });
+    }
+</script>
 
 {% endblock %}

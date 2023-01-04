@@ -79,5 +79,5 @@ async def leave_game(joining_code: str, user_id: int=Depends(get_user_id), db: A
 
 
 @router.post("/{joining_code}/end", response_model=schemas.JoinedGame)
-async def end_game(joining_code: str, user_id: int=Depends(get_user_id), db: AsyncSession=Depends(get_db)):
-    return await crud.end_game(db, joining_code, user_id)
+async def end_game(joining_code: str, results: schemas.GameEnd, user_id: int=Depends(get_user_id), db: AsyncSession=Depends(get_db)):
+    return await crud.end_game(db, joining_code, user_id, results.winner)

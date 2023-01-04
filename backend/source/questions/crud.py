@@ -125,14 +125,17 @@ async def delete_question(db: AsyncSession, question_id: int):
     await db.commit()
 
 
-async def get_random_question(db: AsyncSession, exclude_ids: list[int]):
+async def get_random_question(db: AsyncSession, exclude_ids: list[int], exclude_categories: list[int]):
     result = await db.execute(
-        models.Question.__table__.select().where(~models.Question.id.in_(exclude_ids)).order_by(func.random()).limit(1)
+        models.Question.__table__.select()
+        .where(models.Question.id.notin_(exclude_ids))
+        .where(models.Question.category_id.notin_(exclude_categories))
+        .order_by(func.random())
+        .limit(1)
     )
     result = result.first()
     if result is None:
-        raise errors.NoQuestionsFound()
-    
+        raise errors.QuestionNotFound("No more questions found")
     category = await get_category(db, result.category_id)
     return schemas.QuestionWithId(
         id=result.id,
@@ -140,24 +143,4 @@ async def get_random_question(db: AsyncSession, exclude_ids: list[int]):
         answers=result.answers,
         correct_answer=result.correct_answer,
         category_name=category.name
-    )
-
-
-async def get_random_question_by_category(db: AsyncSession, category_name: str, exclude_ids: list[int]=list()):
-    category = await get_category_by_name(db, category_name)
-    category_id = category.id
-    result = await db.execute(models.Question.__table__.select().where(
-        ~models.Question.id.in_(exclude_ids) & (models.Question.category_id == category_id)
-    ).order_by(func.random()).limit(1))
-    result = result.first()
-
-    if result is None:
-        raise errors.NoQuestionsFound()
-
-    return schemas.QuestionWithId(
-        id=result.id,
-        question=result.question,
-        answers=result.answers,
-        correct_answer=result.correct_answer,
-        category_name=category_name
     )

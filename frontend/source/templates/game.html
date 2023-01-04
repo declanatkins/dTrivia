@@ -1,0 +1,205 @@
+{% extends "layout.html" %}
+{% block page_title %}{% endblock %}
+{% block body %}
+
+
+<!-- Table showing the question in big font and the answers in a grid underneath -->
+<div class="row justify-content-center">
+    <div class="col-auto">
+        <table class="table table-responsive">
+            <tr>
+                <th id="countown-timer"></th>
+            </tr>
+            <tr>
+                <td id="question"></td>
+            </tr>
+            <tr>
+                <td id="answers">
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- Table showing the scores of each player -->
+<div class="row justify-content-center">
+    <div class="col-auto">
+        <table class="table table-responsive">
+            <tr>
+                <th>Player</th>
+                <th>Score</th>
+            </tr>
+            {% for player in game_players %}
+                <tr>
+                    <td>{{ player }}</td>
+                    <td id="{{ player }}-score">0</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<script>
+
+    var socket = io.connect();
+    var your_answer = null;
+    var answered = false;
+    const user_is_game_host = "{{ session['user_id'] }}" == "{{ game_host_id }}"
+    
+    function updateQuestion(question) {
+        console.log(question);
+        var questionElement = document.getElementById('question');
+        questionElement.innerHTML = question;
+    }
+
+    function updateAnswers(answers) {
+        var answersElement = document.getElementById('answers');
+        answersElement.innerHTML = '';
+        for (var i = 0; i < answers.length; i++) {
+            var answer = answers[i];
+            var answerElement = document.createElement('button');
+            answerElement.innerHTML = answer;
+            answerElement.setAttribute('class', 'btn btn-primary');
+            answerElement.setAttribute('onclick', 'answerQuestion("' + answer + '")');
+            answersElement.appendChild(answerElement);
+        }
+    }
+
+    function updateScore(player, score) {
+        console.log(player, score);
+        console.log(player + '-score');
+        var scoreElement = document.getElementById(player + '-score');
+        scoreElement.innerHTML = score;
+    }
+
+    function answerQuestion(answer) {
+        answered = true;
+        socket.emit(
+            'game/answer',
+            {
+                answer: answer,
+                time_left: document.getElementById('countown-timer').innerHTML,
+                joining_code: '{{ game.joining_code }}',
+                user_id: '{{ session.get("user_id") }}'
+            }
+        );
+        your_answer = answer;
+        var answersElement = document.getElementById('answers');
+        var buttons = answersElement.getElementsByTagName('button');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].disabled = true;
+            // if this was the pressed button, change its colour
+            if (buttons[i].innerHTML == answer) {
+                buttons[i].setAttribute('class', 'btn btn-dark');
+            }
+        }
+    }
+
+    function startTimer() {
+        var timerElement = document.getElementById('countown-timer');
+        var timeLeft = 15;
+        timerElement.innerHTML = timeLeft;
+        var timer = setInterval(function() {
+            timeLeft -= 1;
+            timerElement.innerHTML = timeLeft;
+            if (timeLeft <= 0) {
+                if (!answered) {
+                    answerQuestion('pass')
+                }
+                clearInterval(timer);
+            }
+        }, 1000);
+    }
+
+    socket.on('connect', function() {
+        socket.emit('game/join', {
+            joining_code: '{{ game.joining_code }}',
+            user_id: '{{ session.get("user_id") }}'
+        });
+    });
+
+    socket.on('game/start', function() {
+        if (user_is_game_host) {
+            socket.emit('game/next-question', {
+                joining_code: '{{ game.joining_code }}',
+                user_id: '{{ session.get("user_id") }}'
+            });
+        }
+    });
+
+    socket.on('game/question', function(question) {
+        answered = false;
+        updateQuestion(question.question);
+        updateAnswers(question.answers);
+        startTimer();
+
+        if (user_is_game_host) {
+            setTimeout(function() {
+                socket.emit('game/request-answer', {
+                    joining_code: '{{ game.joining_code }}',
+                    user_id: '{{ session.get("user_id") }}'
+                });
+                socket.emit('game/request-scores', {
+                    joining_code: '{{ game.joining_code }}',
+                    user_id: '{{ session.get("user_id") }}'
+                });
+            }, 15500);
+        }
+    });
+
+    socket.on('game/scores', function(scores) {
+        console.log(scores);
+        for (var player_score of scores) {
+            console.log(player_score);
+            updateScore(player_score.name, player_score.score);
+        }
+    });
+
+    socket.on('game/correct-answer', function(correct_answer) {
+        var answersElement = document.getElementById('answers');
+        var buttons = answersElement.getElementsByTagName('button');
+
+        if (correct_answer == your_answer) {
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (buttons[i].innerHTML == correct_answer) {
+                    buttons[i].setAttribute('class', 'btn btn-success');
+                }
+                else {
+                    buttons[i].setAttribute('class', 'btn btn-warning');
+                }
+            }
+        }
+        else {
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (buttons[i].innerHTML == correct_answer) {
+                    buttons[i].setAttribute('class', 'btn btn-info');
+                }
+                else if (buttons[i].innerHTML == your_answer) {
+                    buttons[i].setAttribute('class', 'btn btn-danger');
+                }
+                else {
+                    buttons[i].setAttribute('class', 'btn btn-warning');
+                }
+            }
+        }
+
+        if (user_is_game_host) {
+            setTimeout(function() {
+                socket.emit('game/next-question', {
+                    joining_code: '{{ game.joining_code }}',
+                    user_id: '{{ session.get("user_id") }}'
+                });
+            }, 5000);
+        }
+    });
+
+    socket.on('game/end', function() {
+        window.location.href = '/game/{{ game.joining_code }}/results';
+    });
+
+</script>
+
+
+{% endblock %}
