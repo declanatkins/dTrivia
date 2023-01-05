@@ -320,4 +320,4 @@ def game_on_request_scores(data):
 
 
 if __name__ == '__main__':
-    socket_app.run(app, host='0.0.0.0', port=5000, debug=True)
+    socket_app.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
