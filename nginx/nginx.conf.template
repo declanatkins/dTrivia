@@ -1,0 +1,28 @@
+http {
+
+    log_format  main  '${DOLLAR}remote_addr - ${DOLLAR}remote_user [${DOLLAR}time_local] "${DOLLAR}request" '
+                      '${DOLLAR}status ${DOLLAR}body_bytes_sent "${DOLLAR}http_referer" '
+                      '"${DOLLAR}http_user_agent" "${DOLLAR}http_x_forwarded_for"';
+    access_log  /var/log/nginx/access.log  main;
+
+    server {
+        listen 80;
+        server_name ${SERVER_NAME};
+        
+        location /api/${VERSION}/ {
+            proxy_pass ${BACKEND_DOCKER_URL};
+            proxy_set_header Host ${DOLLAR}host;
+            proxy_set_header X-Real-IP ${DOLLAR}remote_addr;
+        }
+
+        location / {
+            proxy_pass ${FRONTEND_DOCKER_URL};
+            proxy_set_header Host ${DOLLAR}host;
+            proxy_set_header X-Real-IP ${DOLLAR}remote_addr;
+        }
+    }
+
+    events {
+        worker_connections 1024;
+    }
+}

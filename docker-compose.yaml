@@ -1,0 +1,75 @@
+version: '3.7'
+
+services:
+  postgres:
+    image: postgres:15.1-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    # volumes:
+    #   - ./db_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:7.0.7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379
+  nginx:
+    image: nginx:1.23.3-alpine
+    container_name: nginx
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template
+    ports:
+      - 80:80
+    command: /bin/sh -c "envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    environment:
+      - SERVER_NAME=${SERVER_NAME}
+      - BACKEND_DOCKER_URL=${BACKEND_DOCKER_URL}
+      - FRONTEND_DOCKER_URL=${FRONTEND_DOCKER_URL}
+      - DOLLAR=${DOLLAR}
+    depends_on:
+      - backend
+      - frontend
+  backend:
+    build: backend
+    container_name: backend
+    restart: on-failure
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_DB=${REDIS_DB}
+      - PYTHONBUFFERED=1
+    # depends_on:
+    #   postgres:
+    #       condition: service_healthy
+  frontend:
+    build: frontend
+    container_name: frontend
+    restart: on-failure
+    environment:
+      - BACKEND_URL=${BACKEND_DOCKER_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_DB=${REDIS_DB}
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
+    depends_on:
+      - backend
+      - redis
