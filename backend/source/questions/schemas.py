@@ -1,16 +1,6 @@
 from typing import List
 from pydantic import BaseModel
 
-
-class Category(BaseModel):
-    name: str
-    description: str
-
-
-class CategoryWithId(Category):
-    id: int
-
-
 class Question(BaseModel):
     question: str
     answers: List[str]
@@ -18,5 +8,6 @@ class Question(BaseModel):
     category_name: str
 
 
-class QuestionWithId(Question):
+class Caegory(BaseModel):
     id: int
+    name: str

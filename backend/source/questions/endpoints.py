@@ -1,124 +1,63 @@
+import random
 from typing import List
-from fastapi import APIRouter, Depends, Query, Response, BackgroundTasks
+from fastapi import APIRouter, Depends, Query, Response
+import requests
 from sqlalchemy.ext.asyncio import AsyncSession
 from users.session import validate_session
-from questions import schemas, crud, models, errors
-from db import engine, get_db
+from questions import schemas
+from db import get_db
+from game import models, errors
 
-
-categories_router = APIRouter(
-    prefix="/categories",
-    tags=["Categories"],
-    responses={404: {"description": "Not found"}},
-)
 
 questions_router = APIRouter(
     prefix="/questions",
     tags=["Questions"],
     responses={404: {"description": "Not found"}},
+    dependencies=[Depends(validate_session)]
 )
 
 
-def bulk_load_questions(list_of_questions: list[schemas.Question], db: AsyncSession):
-    for question in list_of_questions:
-        try:
-            crud.create_question(db, question)
-        except errors.CategoryDoesNotExist:
-            crud.create_category(db, schemas.Category(name=question.category, description=""))
-            crud.create_question(db, question)
-
-
-def bulk_load_categories(list_of_categories: list[schemas.Category], db: AsyncSession):
-    for category in list_of_categories:
-        crud.create_category(db, category)
-
-
-@questions_router.on_event("startup")
-async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
-
-
-@categories_router.get("/", response_model=list[schemas.CategoryWithId], dependencies=[Depends(validate_session)])
-async def get_categories(db: AsyncSession = Depends(get_db)):
-    return await crud.get_categories(db)
-
-
-@categories_router.get("/{category_name}", response_model=schemas.CategoryWithId, dependencies=[Depends(validate_session)])
-async def get_category(category_name: str, db: AsyncSession = Depends(get_db)):
-    return await crud.get_category_by_name(db, category_name)
-
-
-@categories_router.post("/", response_model=schemas.CategoryWithId, dependencies=[Depends(validate_session)], status_code=201)
-async def create_category(category: schemas.Category, db: AsyncSession = Depends(get_db)):
-    return await crud.create_category(db, category)
-
-
-@categories_router.put("/{category_id}", response_model=schemas.CategoryWithId, dependencies=[Depends(validate_session)])
-async def update_category(category: schemas.Category, category_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.update_category(db, category, category_id)
-
-
-@categories_router.delete("/{category_id}", dependencies=[Depends(validate_session)])
-async def delete_category(category_id: int, db: AsyncSession = Depends(get_db)):
-    await crud.delete_category(db, category_id)
-    return Response(status_code=204)
-
-
-@categories_router.post("/actions/bulk", dependencies=[Depends(validate_session)])
-async def bulk_load_categories(
-        categories: List[schemas.Category],
-        background_tasks: BackgroundTasks,
-        db: AsyncSession = Depends(get_db)
+@questions_router.get("/", response_model=schemas.Question)
+async def get_question(
+    game_code: str = Query(),
+    category: str or None = Query(default=None),
+    difficulty: str or None = Query(default=None),
+    db: AsyncSession = Depends(get_db)
 ):
-    background_tasks.add_task(bulk_load_categories, categories, db)
-    return Response(status_code=200, content='{"detail": "Bulk load started"}')
-
-
-@questions_router.get("/{question_id}", response_model=schemas.QuestionWithId, dependencies=[Depends(validate_session)])
-async def get_question(question_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.get_question(db, question_id)
-
-
-@questions_router.post("/", response_model=schemas.QuestionWithId, dependencies=[Depends(validate_session)], status_code=201)
-async def create_question(question: schemas.Question, db: AsyncSession = Depends(get_db)):
-    return await crud.create_question(db, question)
-
-
-@questions_router.put("/{question_id}", response_model=schemas.QuestionWithId, dependencies=[Depends(validate_session)])
-async def update_question(question: schemas.Question, question_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.update_question(db, question, question_id)
-
-
-@questions_router.delete("/{question_id}", dependencies=[Depends(validate_session)])
-async def delete_question(question_id: int, db: AsyncSession = Depends(get_db)):
-    await crud.delete_question(db, question_id)
-    return Response(status_code=204)
-
-
-@questions_router.get("/actions/random", response_model=schemas.QuestionWithId, dependencies=[Depends(validate_session)])
-async def get_random_question(
-        db: AsyncSession = Depends(get_db),
-        exclude_ids: List[int] | None = Query(default=None),
-        exclude_categories: List[int] | None = Query(default=None)
-):
-    if exclude_ids is None:
-        exclude_ids = []
+    game = await db.execute(models.Game.__table__.select().where(models.Game.joining_code == game_code))
+    game = game.first()
+    if not game:
+        raise errors.GameNotFound(game_code)
+    if not game.is_active:
+        raise errors.GameAlreadyEnded(game_code)
+    if not game.is_started:
+        raise errors.GameNotStarted(game_code)
     
-    if exclude_categories is None:
-        exclude_categories = []
+    url = 'https://opentdb.com/api.php'
+    params = {
+        'amount': 1,
+        'type': 'multiple',
+        'token': game.open_trivia_token
+    }
+    if category:
+        params['category'] = category
+    if difficulty:
+        params['difficulty'] = difficulty
+    response = requests.get(url, params=params)
+    db_question = response.json()['results'][0]
+    answers = db_question['incorrect_answers'] + [db_question['correct_answer']]
+    answers = random.shuffle(answers)
+    question = schemas.Question(
+        question=db_question['question'],
+        answers=answers,
+        correct_answer=answers.index(db_question['correct_answer']),
+        category_name=db_question['category']
+    )
+    return question
 
-    return await crud.get_random_question(db, exclude_ids, exclude_categories)
 
-
-@questions_router.post("/actions/bulk", dependencies=[Depends(validate_session)])
-async def bulk_create_questions(
-        questions: List[schemas.Question],
-        background_tasks: BackgroundTasks,
-        db: AsyncSession = Depends(get_db),
-):
-    background_tasks.add_task(bulk_load_questions, questions, db)
-    return Response(status_code=200, content='{"detail": "Bulk load started"}')
-
-
-questions_router.include_router(categories_router)
+@questions_router.get("/categories", response_model=List[schemas.Category])
+def get_categories():
+    category_url = 'https://opentdb.com/api_category.php'
+    response = requests.get(category_url)
+    return response.json()['trivia_categories']

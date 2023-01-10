@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import requests
 from sqlalchemy.ext.asyncio import AsyncSession
 from game import models, schemas, errors
 from users.crud import get_user_by_id
@@ -45,6 +46,14 @@ async def create_game(db: AsyncSession, host_id: int, max_players: int):
     left = random.choice(LEFT_NAMES)
     right = random.choice(RIGHT_NAMES)
     joining_code = f"{left}-{right}"
+
+    open_trivia_url = 'https://opentdb.com/api_token.php'
+    open_trivia_params = {
+        'command': 'request',
+    }
+    open_trivia_response = requests.get(open_trivia_url, params=open_trivia_params)
+    open_trivia_token = open_trivia_response.json()['token']
+
     game = models.Game(
         joining_code=joining_code,
         host_id=host_id,
@@ -52,7 +61,8 @@ async def create_game(db: AsyncSession, host_id: int, max_players: int):
         max_players=max_players,
         is_started=False,
         is_active=True,
-        winner=None
+        winner=None,
+        open_trivia_token=open_trivia_token
     )
     db.add(game)
     await db.commit()
