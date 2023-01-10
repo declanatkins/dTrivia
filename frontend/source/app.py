@@ -22,7 +22,7 @@ game_access_lock = Lock()
 app = Flask(__name__)
 settings = get_settings()
 app.secret_key = settings.FLASK_SECRET_KEY
-socket_app = SocketIO(app, async_mode='gevent')
+socket_app = SocketIO(app)#, async_mode='gevent')
 
 
 @app.route('/')
@@ -90,7 +90,13 @@ def create_game():
     data = request.form.to_dict()
     data['host_player'] = session['user_id']
     response = make_backend_request('post', 'games/', data)
-    exclude_categories = request.form.getlist('excluded_categories')
+    selected_category = data['selected_categories']
+    difficulty = data['difficulty']
+
+    if selected_category == 'any':
+        selected_category = None
+    if difficulty == 'any':
+        difficulty = None
     if response.status_code == 201:
         flash('Game created successfully')
         # Create the game object
@@ -99,7 +105,8 @@ def create_game():
             data['max_players'],
             session['user_id'],
             data['number_of_questions'],
-            exclude_categories
+            selected_category,
+            difficulty
         )
         with game_access_lock:
             game.commit_to_redis()
@@ -320,4 +327,4 @@ def game_on_request_scores(data):
 
 
 if __name__ == '__main__':
-    socket_app.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
+    socket_app.run(app, host='0.0.0.0', port=5000, debug=True)

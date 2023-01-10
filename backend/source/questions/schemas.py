@@ -8,6 +8,6 @@ class Question(BaseModel):
     category_name: str
 
 
-class Caegory(BaseModel):
+class Category(BaseModel):
     id: int
     name: str

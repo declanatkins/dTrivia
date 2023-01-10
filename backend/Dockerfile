@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 COPY source /app
 WORKDIR /app
 
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8000", "--workers", "4", "-k", "uvicorn.workers.UvicornWorker"]
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8000", "--workers", "4", "-k", "uvicorn.workers.UvicornWorker", "--log-level", "info"]

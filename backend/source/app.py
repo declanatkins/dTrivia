@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI
 from game.endpoints import router as game_router
 from users.endpoints import router as user_router

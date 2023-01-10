@@ -29,9 +29,9 @@ async def get_question(
     if not game:
         raise errors.GameNotFound(game_code)
     if not game.is_active:
-        raise errors.GameAlreadyEnded(game_code)
+        raise errors.GameAlreadyEnded()
     if not game.is_started:
-        raise errors.GameNotStarted(game_code)
+        raise errors.GameNotStarted()
     
     url = 'https://opentdb.com/api.php'
     params = {
@@ -46,7 +46,7 @@ async def get_question(
     response = requests.get(url, params=params)
     db_question = response.json()['results'][0]
     answers = db_question['incorrect_answers'] + [db_question['correct_answer']]
-    answers = random.shuffle(answers)
+    random.shuffle(answers)
     question = schemas.Question(
         question=db_question['question'],
         answers=answers,

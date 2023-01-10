@@ -3,7 +3,7 @@ import os
 # Postgres settings
 DB_HOST  = "localhost"
 DB_PORT  = "5432"
-DB_NAME  = "dtrivia-dev"
+DB_NAME  = os.getenv("DB_NAME","dtrivia-dev")
 DB_USER  = os.getenv("DB_USER", "postgres")
 DB_PASSWORD  = os.getenv("DB_PASSWORD")
 

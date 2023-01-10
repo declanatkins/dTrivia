@@ -32,7 +32,7 @@ async def get_game(db: AsyncSession, joining_code: str):
     game = await db.execute(models.Game.__table__.select().where(models.Game.joining_code == joining_code))
     game = game.first()
     if game is None:
-        raise errors.GameNotFound
+        raise errors.GameNotFound(joining_code)
     return schemas.JoinedGame(
         joining_code=joining_code,
         host_player=game.host_id,
@@ -80,7 +80,7 @@ async def join_game(db: AsyncSession, joining_code: str, user_id: int):
     game = await db.execute(models.Game.__table__.select().where(models.Game.joining_code == joining_code))
     game = game.first()
     if not game:
-        raise errors.GameNotFound
+        raise errors.GameNotFound(joining_code)
     if game.is_started:
         raise errors.GameAlreadyStarted
     if user_id in game.players:
@@ -103,7 +103,7 @@ async def leave_game(db: AsyncSession, joining_code: str, user_id: int):
     game = await db.execute(models.Game.__table__.select().where(models.Game.joining_code == joining_code))
     game = game.first()
     if not game:
-        raise errors.GameNotFound
+        raise errors.GameNotFound(joining_code)
     if user_id not in game.players:
         raise errors.UserNotInGame
     if user_id == game.host_id:
@@ -126,7 +126,7 @@ async def start_game(db: AsyncSession, joining_code: str, user_id: int):
     game = await db.execute(models.Game.__table__.select().where(models.Game.joining_code == joining_code))
     game = game.first()
     if not game:
-        raise errors.GameNotFound
+        raise errors.GameNotFound(joining_code)
     if user_id != game.host_id:
         raise errors.UserNotHost
     if game.is_started:
