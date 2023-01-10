@@ -9,4 +9,4 @@ COPY source /app
 WORKDIR /app
 
 
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "4"]
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "1", "-k", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker"]

@@ -9,8 +9,8 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    # volumes:
-    #   - ./db_data:/var/lib/postgresql/data
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
     ports:
       - 5432:5432
   redis:
@@ -21,24 +21,6 @@ services:
       - 6379:6379
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-  nginx:
-    image: nginx:1.23.3-alpine
-    container_name: nginx
-    restart: always
-    volumes:
-      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template
-    ports:
-      - 80:80
-    command: /bin/sh -c "envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
-    environment:
-      - SERVER_NAME=${SERVER_NAME}
-      - BACKEND_DOCKER_URL=${BACKEND_DOCKER_URL}
-      - FRONTEND_DOCKER_URL=${FRONTEND_DOCKER_URL}
-      - DOLLAR=${DOLLAR}
-      - VERSION=${VERSION}
-    depends_on:
-      - backend
-      - frontend
   backend:
     build: backend
     container_name: backend
@@ -73,4 +55,4 @@ services:
       - backend
       - redis
     ports:
-      - 5000:5000
+      - 80:5000

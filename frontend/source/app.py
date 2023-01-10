@@ -22,7 +22,7 @@ game_access_lock = Lock()
 app = Flask(__name__)
 settings = get_settings()
 app.secret_key = settings.FLASK_SECRET_KEY
-socket_app = SocketIO(app)
+socket_app = SocketIO(app, async_mode='gevent')
 
 
 @app.route('/')

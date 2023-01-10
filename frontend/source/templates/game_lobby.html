@@ -90,20 +90,6 @@
         });
     });
 
-    window.onbeforeunload = function() {
-        socket.emit('lobby/leave', {
-            joining_code: '{{ game.joining_code }}',
-            user_id: '{{ session.get("user_id") }}'
-        });
-    };
-
-    window.onunload = function() {
-        socket.emit('lobby/leave', {
-            joining_code: '{{ game.joining_code }}',
-            user_id: '{{ session.get("user_id") }}'
-        });
-    };
-
     function startGame() {
         console.log('start game');
         socket.emit('lobby/start-game', {
