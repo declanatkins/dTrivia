@@ -57,7 +57,7 @@ async def login_user(
 
 @router.post("/logout", dependencies=[Depends(validate_session)])
 async def logout_user(session_id: str = Header(alias="session-id")):
-    delete_session(session_id)
+    await delete_session(session_id)
 
 
 @router.get("/{user_name}", response_model=schemas.User, dependencies=[Depends(validate_session)])

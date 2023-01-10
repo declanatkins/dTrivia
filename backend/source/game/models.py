@@ -12,3 +12,4 @@ class Game(Base):
     is_started = Column(Boolean)
     is_active = Column(Boolean)
     winner = Column(Integer)
+    open_trivia_token = Column(String)

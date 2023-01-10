@@ -10,11 +10,21 @@
                 <h1>Create Game</h1>
                 <form action="/create-game" method="post">
                     <div class="form-group">
-                        <label for="excluded_categories">Excluded Categories</label>
-                        <select id="category_select" name="excluded_categories" multiple="multiple">
+                        <label for="excluded_categories">Selected Category</label>
+                        <select id="category_select" name="selected_categories" required>
+                                <option value="any" selected>Any</option>
                             {% for category in categories %}
                                 <option value="{{ category.id }}">{{ category.name }}</option>
                             {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="difficulty">Difficulty</label>
+                        <select id="difficulty_select" name="difficulty" required>
+                            <option value="any" selected>Any</option>
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
                         </select>
                     </div>
                     <div>
@@ -31,13 +41,5 @@
         </div>
     </div>
 </div> 
-
-<script>
-    $(document).ready(function() {
-        console.log("ready!");
-        console.log($('#category_select'));
-        $('#category_select').multiselect();
-    });
-</script>
 
 {% endblock %}

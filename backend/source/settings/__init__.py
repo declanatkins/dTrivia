@@ -7,3 +7,4 @@ def get_settings():
         return deploy
     else:
         return local
+    

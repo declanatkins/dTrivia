@@ -50,7 +50,7 @@ class Game:
             return
         raise KeyError(f'Game with joining code {joining_code} does not exist')
 
-    def __init__(self, joining_code, max_players, host_player, question_count, exclude_categories=list()):
+    def __init__(self, joining_code, max_players, host_player, question_count, selected_category, difficulty):
         self.joining_code = joining_code
         self.max_players = max_players
         self.host_player = host_player
@@ -62,7 +62,8 @@ class Game:
         self.is_started = False
         self.is_finished = False
         self.total_questions = question_count
-        self.exclude_categories = exclude_categories
+        self.selected_category = selected_category
+        self.difficulty = difficulty
 
     def next_question(self):
         if self.current_question is not None:
@@ -71,17 +72,19 @@ class Game:
             self.is_finished = True
             raise ValueError('Game is finished')
         
-        params = {}
-        if self.used_questions:
-            params['exclude_ids'] = [q['id'] for q in self.used_questions]
+        params = {
+            'game_code': self.joining_code,
+        }
+        if self.selected_category:
+            params['category'] = self.selected_category
+        if self.difficulty:
+            params['difficulty'] = self.difficulty
 
-        if self.exclude_categories:
-            params['exclude_categories'] = self.exclude_categories
-        params = params or None
-
-        response = make_backend_request('get', 'questions/actions/random', params=params)
+        response = make_backend_request('get', 'questions/', params=params)
         if response.status_code == 200:
             self.current_question = response.json()
+        else:
+            print(response.text)
     
     def add_player(self, player):
         self.players.append(player)
@@ -116,7 +119,8 @@ class Game:
             'is_finished': self.is_finished,
             'in_game_players': self.in_game_players,
             'total_questions': self.total_questions,
-            'exclude_categories': self.exclude_categories
+            'selected_category': self.selected_category,
+            'difficulty': self.difficulty
         }
     
     @classmethod
@@ -127,7 +131,8 @@ class Game:
             json_data['max_players'],
             json_data['host_player'],
             json_data['total_questions'],
-            json_data['exclude_categories']
+            json_data['selected_category'],
+            json_data['difficulty']
         )
         base.players = json_data['players']
         base.used_questions = json_data['used_questions']

@@ -2,8 +2,8 @@ from fastapi import HTTPException, status
 
 
 class GameNotFound(HTTPException):
-    def __init__(self):
-        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
+    def __init__(self, code: str):
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=f"Game not found: {code}")
 
 
 class UserNotInGame(HTTPException):
@@ -29,6 +29,11 @@ class UserIsHost(HTTPException):
 class GameAlreadyStarted(HTTPException):
     def __init__(self):
         super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail="Game already started")
+
+
+class GameNotStarted(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail="Game not started")
 
 
 class GameAlreadyEnded(HTTPException):

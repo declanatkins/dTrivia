@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from settings import get_settings
 
 settings = get_settings()
+print(settings.DB_USER, settings.DB_PASSWORD, settings.DB_HOST, settings.DB_PORT, settings.DB_NAME)
 
 DB_URL = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}" \
     f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
